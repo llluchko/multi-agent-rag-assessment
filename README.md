@@ -45,7 +45,9 @@ For Ollama, install and start [Ollama](https://ollama.com/download) on your mach
 ollama pull qwen3:4b
 ```
 
-Set `LLM_PROVIDER=ollama` in `.env`, then apply the configuration:
+Set `LLM_PROVIDER=ollama` in `.env` to use it, or `mock` to switch back.
+After either change, apply the configuration (Docker Desktop **Restart** alone
+does not reload `.env`):
 
 ```sh
 docker compose up -d api notebook
