@@ -42,24 +42,23 @@ The first run downloads the images and embedding model. Later runs reuse the cac
 For API and notebook only, omit `--profile ui`. After changing code, rerun the start
 command to rebuild. To stop everything: `docker compose --profile ui down`.
 
-## Mock or real LLM
+## Choose the LLM
 
-By default, **MiniLM runs locally to compute real embeddings**, while Python rules
-simulate planning and extract text from retrieved documents. No API key or GPU is needed.
-
-For generated answers, edit `.env`:
+Set one value in `.env`; API and notebook use the same setting:
 
 ```dotenv
-RAG_MODE=live
-LLM_PROVIDER=openai
-OPENAI_API_KEY=your-key
+LLM_PROVIDER=mock
 ```
 
-Run `docker compose --profile ui up -d` again to apply the configuration, then restart
-any open notebook kernel. `OPENAI_MODEL` selects the model. This provider sends questions
-and retrieved passages to OpenAI and incurs API usage; it never silently falls back to mock.
+Use `mock` for deterministic answers without an LLM server, or `ollama` for real
+local Qwen3 4B generation. Both use real local MiniLM embeddings by default.
+No API key is needed. Ollama failures are reported; there is no automatic mock fallback.
 
-### Free local LLM with Ollama
+Native Python reads `.env` automatically. After changing it, restart the notebook
+kernel and run all cells. With Docker, first run `docker compose up -d api notebook`
+to apply the setting to both containers. No notebook code changes are needed.
+
+### Start Ollama (only for `LLM_PROVIDER=ollama`)
 
 Install [Ollama](https://ollama.com/download) on the host and start it (`ollama serve`
 in another terminal if the app is not running). Download the model once:
@@ -92,37 +91,20 @@ Skip this command if Ollama is already running on port 11434.
 
 </details>
 
-For Docker Desktop, set these values in `.env` (no API key needed):
+Ollama runs on the host; the API and notebook can stay in Docker. The address is
+selected automatically: native Python uses `localhost:11434`, while Compose uses
+`host.docker.internal:11434`. Set `OLLAMA_URL` only for a custom server and
+`OLLAMA_MODEL` only to override `qwen3:4b`. On Linux, the Ollama listener must be
+reachable from the Docker gateway; otherwise use native Python.
 
-```dotenv
-RAG_MODE=live
-LLM_PROVIDER=ollama
-OLLAMA_MODEL=qwen3:4b
-OLLAMA_URL=http://host.docker.internal:11434
-```
+The notebook's final cell checks the three answers already generated with Ollama.
+In mock mode, it explicitly skips the real-model assertions. Feedback and failure
+experiments, plus the 24-case diagnostic baseline, always use mock and are labelled.
 
-Rebuild with `docker compose --profile ui up --build -d`, then restart the notebook
-kernel. `/health` reports `mode: live` and `llm_provider: ollama`. Ollama runs on the
-host; the API and notebook stay in Docker. On Linux, the host Ollama listener must
-be reachable from the Docker gateway; alternatively use native Python with
-`OLLAMA_URL=http://localhost:11434`.
-
-Run the three real-model scenarios explicitly:
-
-```sh
-docker compose exec -e RUN_LIVE_LLM=1 -e LLM_PROVIDER=ollama api \
-  python -m pytest tests/test_scenarios.py::test_live_model -v
-```
-
-[Qwen3 4B](https://ollama.com/library/qwen3:4b) has an Apache 2.0 license; its Ollama download is about 2.5 GB.
-Local inference uses your machine's memory and compute, with no per-request API fee.
-The tests check required domains, expected sources, completion and token usage;
-they do not prove that every generated statement is correct.
-The notebook also has an optional local live-test cell: set `RUN_LOCAL_LIVE_TEST = True`
-there to run the same three scenarios while keeping the rest of the demo in mock mode.
-The first notebook cell sets `DEMO_MODE="mock"` explicitly, independently of the API's
-environment. To use Ollama throughout the notebook, change it to `"live"` and keep
-`DEMO_PROVIDER="ollama"`. Restart the kernel and clear old outputs when switching modes.
+[Qwen3 4B](https://ollama.com/library/qwen3:4b) has an Apache 2.0 license and a roughly
+2.5 GB download. Inference uses your computer, with no per-request API fee.
+A full notebook run takes several minutes with Ollama. Valid citations do not prove
+that every generated statement is relevant or complete.
 
 ## Development without Docker
 
@@ -135,8 +117,8 @@ python -m pip install -r requirements.txt -c constraints.txt
 python -m uvicorn rag_system.api:app --host 127.0.0.1 --port 8000
 ```
 
-On Windows, activate with `.venv\Scripts\Activate.ps1`. Native Python does not load
-`.env`; set environment variables in your terminal for live mode.
+On Windows, activate with `.venv\Scripts\Activate.ps1`. The same `.env` is loaded
+automatically. Explicit environment variables take precedence over the file.
 Run `python -m jupyterlab` for the notebook. For React, use Node 22.12+ and run
 `npm ci` then `npm run dev` inside `frontend`.
 
@@ -148,9 +130,15 @@ docker compose exec -e RUN_SEMANTIC=1 api python -m pytest -q
 docker compose exec api python -m scripts.evaluate
 ```
 
-The first suite uses test doubles; the second includes MiniLM. Live tests are
-opt-in (`RUN_LIVE_LLM=1`) and use `LLM_PROVIDER` (OpenAI needs a key; Ollama does not).
-Native equivalents use the same
+The first suite uses test doubles; the second includes MiniLM. To run the three
+real Ollama scenarios separately from the notebook:
+
+```sh
+docker compose exec -e RUN_LIVE_LLM=1 api python -m pytest -m live -v
+```
+
+`RUN_LIVE_LLM` only opts into pytest's slower integration tests; it does not configure
+the application or notebook. Native equivalents use the same
 `python -m ...` commands. Run `python -m ruff check .` and
 `python -m ruff format --check .` for Python style; `npm run build` checks React.
 

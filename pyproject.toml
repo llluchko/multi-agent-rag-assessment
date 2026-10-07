@@ -1,7 +1,7 @@
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
-markers = ["semantic: real local embedding model", "live: real LLM (OpenAI or local Ollama)"]
+markers = ["semantic: real local embedding model", "live: real local Ollama model"]
 
 [tool.ruff]
 line-length = 100

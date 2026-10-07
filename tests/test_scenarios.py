@@ -228,8 +228,8 @@ def test_live_model(query, domains, sources):
     import os
 
     if os.getenv("RUN_LIVE_LLM") != "1":
-        pytest.skip("Set RUN_LIVE_LLM=1; uses LLM_PROVIDER (OpenAI is paid, Ollama is local)")
-    system = build_system("live", "fastembed")
+        pytest.skip("Set RUN_LIVE_LLM=1 to test local Ollama with real MiniLM")
+    system = build_system("ollama", "fastembed")
     a = system.query(query)
     assert a.status == "answered", {
         "status": a.status,

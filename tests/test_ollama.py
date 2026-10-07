@@ -86,7 +86,7 @@ def test_ollama_missing_model_has_actionable_error():
 def test_local_provider_needs_no_openai_key(monkeypatch):
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.setenv("LLM_PROVIDER", "ollama")
-    assert isinstance(build_system("live", "lexical").llm, OllamaLLM)
+    assert isinstance(build_system(embedding_backend="lexical").llm, OllamaLLM)
     monkeypatch.setenv("LLM_PROVIDER", "typo")
     with pytest.raises(ValueError, match="LLM_PROVIDER"):
-        build_system("live", "lexical")
+        build_system(embedding_backend="lexical")

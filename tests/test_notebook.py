@@ -17,15 +17,15 @@ def code_cell(prefix):
     )
 
 
-def test_notebook_default_is_independent_of_live_api_environment(monkeypatch):
+@pytest.mark.parametrize("provider", ["mock", "ollama"])
+def test_notebook_uses_the_same_provider_configuration_as_the_api(monkeypatch, provider):
     monkeypatch.chdir(ROOT)
-    monkeypatch.setenv("RAG_MODE", "live")
-    monkeypatch.setenv("LLM_PROVIDER", "openai")
+    monkeypatch.setenv("LLM_PROVIDER", provider)
     monkeypatch.setenv("EMBEDDING_BACKEND", "lexical")
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     namespace = {}
     exec(code_cell("import json"), namespace)
-    assert namespace["system"].llm.provider == "mock"
+    assert namespace["system"].llm.provider == provider
 
 
 def test_notebook_reports_planner_error_instead_of_crashing_on_missing_plan(system):

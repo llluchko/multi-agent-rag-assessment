@@ -11,3 +11,4 @@ ipykernel==7.4.0
 jupyterlab==4.6.4
 ruff==0.16.10
 huggingface-hub==1.33.0
+python-dotenv==1.2.4
