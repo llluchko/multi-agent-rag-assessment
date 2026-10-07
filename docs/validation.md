@@ -27,6 +27,10 @@ and Ruff plus the TypeScript/Vite build passed. Notebook validation did not over
 the user's saved outputs. Docker runtime checks above precede the Python refactor;
 rebuild containers to load the updated source.
 
+UI regression check: submit a microservice question, then `hello`. The second response
+shows `no_evidence`; the previous question and its source labels are absent from the DOM.
+The UI container was rebuilt, and TypeScript plus the Vite build passed.
+
 The test suite emits a Starlette deprecation notice for its httpx test client; tests
 still pass. Notebook kernel transport emitted a local TCP warning from Jupyter.
 Neither message was hidden or treated as a test failure.

@@ -22,7 +22,11 @@ export function AnswerView({ result }: { result: Answer }) {
         </details>
       )}
 
-      <details>
+      {result.results.length === 0 && result.status === 'no_evidence' && (
+        <p className="muted">No domain was selected. Try a question about technical, business or compliance procedures.</p>
+      )}
+
+      {(result.results.length > 0 || result.conflicts.length > 0) && <details>
         <summary>Agent steps</summary>
         <ul>
           {result.results.map(({ task, error }) => (
@@ -35,7 +39,7 @@ export function AnswerView({ result }: { result: Answer }) {
             <li key={`conflict-${index}`}>Conflict: {conflict.reason}</li>
           ))}
         </ul>
-      </details>
+      </details>}
     </section>
   );
 }

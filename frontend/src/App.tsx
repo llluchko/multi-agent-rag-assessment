@@ -7,7 +7,7 @@ type Entry = { question: string; result: Answer };
 
 export function App() {
   const [question, setQuestion] = useState('');
-  const [entries, setEntries] = useState<Entry[]>([]);
+  const [entry, setEntry] = useState<Entry | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [mode, setMode] = useState<Mode | null>(null);
@@ -25,10 +25,11 @@ export function App() {
     if (busy || question.trim().length < 3) return;
     setBusy(true);
     setError('');
+    setEntry(null);
     try {
       const text = question.trim();
       const result = await askQuestion(text);
-      setEntries(previous => [...previous, { question: text, result }]);
+      setEntry({ question: text, result });
       setMode(result.mode);
       setQuestion('');
     } catch (cause) {
@@ -70,12 +71,12 @@ export function App() {
 
       {error && <p className="error" role="alert">{error}</p>}
       <div aria-live="polite" aria-busy={busy}>
-        {entries.map(({ question, result }) => (
-          <article key={result.request_id}>
-            <h2>{question}</h2>
-            <AnswerView result={result} />
+        {entry && (
+          <article key={entry.result.request_id}>
+            <h2>{entry.question}</h2>
+            <AnswerView result={entry.result} />
           </article>
-        ))}
+        )}
       </div>
     </main>
   );

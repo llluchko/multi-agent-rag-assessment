@@ -167,7 +167,7 @@ correctness. The cases are development examples, not an independent holdout. Use
   committed seed corpus. Answers retain source snapshots. History is bounded to 256 requests.
 - Use one API worker. A lock serializes queries and updates for consistent snapshots.
   This sacrifices throughput for clarity. Notebook and API have independent state.
-- Chat history is visual only; every question is independent. No auth, file upload,
+- The UI shows only the latest response; every question is independent. No auth, file upload,
   conversational memory, streaming, or public deployment is included.
 
 See [architecture and requirement mapping](docs/architecture.md), [validation](docs/validation.md),
