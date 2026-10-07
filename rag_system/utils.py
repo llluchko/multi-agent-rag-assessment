@@ -1,6 +1,6 @@
 """Deterministic conflict policy and source-labelled rendering."""
 
-from .models import Claim, Conflict, Draft, Evidence
+from .models import AgentResult, AnswerStatus, Claim, Conflict, Draft, Evidence
 
 
 def cited_source_ids(claims: list[Claim]) -> set[str]:
@@ -9,6 +9,29 @@ def cited_source_ids(claims: list[Claim]) -> set[str]:
     for claim in claims:
         source_ids.update(claim.source_ids)
     return source_ids
+
+
+def answer_status(
+    results: list[AgentResult], draft: Draft, conflicts: list[Conflict], error: str | None
+) -> AnswerStatus:
+    """Failure → no evidence → partial coverage → complete coverage, in that order.
+
+    Coverage means the final draft cites at least one source from every routed
+    domain's claims. It does not measure whether those claims are factually correct.
+    """
+    if error or (results and all(result.error for result in results)):
+        return "failed"
+    if not draft.claims:
+        return "no_evidence"
+    if any(conflict.selected_source_id is None for conflict in conflicts):
+        return "partial"
+
+    final_sources = cited_source_ids(draft.claims)
+    for result in results:
+        domain_sources = cited_source_ids(result.claims)
+        if result.error or not final_sources.intersection(domain_sources):
+            return "partial"
+    return "answered"
 
 
 def resolve_conflict(candidates: list[Evidence]) -> tuple[list[Evidence], Conflict | None]:

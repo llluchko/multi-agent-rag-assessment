@@ -4,6 +4,23 @@ A small assistant for technical, business and compliance questions. It retrieves
 relevant documents, resolves annotated conflicts and returns answers with sources.
 Includes a Python core, Jupyter notebook, FastAPI service and optional React UI.
 
+## Read the code
+
+Start with one question in `notebooks/demo.ipynb`, then follow this path:
+
+1. [`bootstrap.py`](rag_system/bootstrap.py) — creates the store, LLM and agents.
+2. [`Orchestrator._query()`](rag_system/orchestrator.py) — the complete workflow:
+   plan → retrieve → resolve conflicts → generate → synthesize → respond.
+3. [`domain_agents.py`](rag_system/domain_agents.py) and
+   [`vector_store.py`](rag_system/vector_store.py) — context selection and cited claims.
+4. [`models.py`](rag_system/models.py) — messages shared through the orchestrator.
+5. [`utils.py`](rag_system/utils.py) — conflict policy and answer status rules.
+
+Three domain agents share one implementation, with domain-filtered knowledge.
+Calls are sequential in one process; JSON seeds an in-memory NumPy vector store.
+These choices keep the small corpus easy to inspect. API, notebook and optional UI
+use the same core. The [code guide](docs/code_walkthrough.bg.md) includes a 30-minute tour.
+
 ## Start with Docker
 
 Install and start **Docker Desktop**. Open a terminal in this project folder.

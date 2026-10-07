@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 Domain = Literal["technical", "business", "compliance"]
 DOMAINS: tuple[Domain, ...] = ("technical", "business", "compliance")
+AnswerStatus = Literal["answered", "partial", "no_evidence", "failed"]
 
 
 class Message(BaseModel):
@@ -101,7 +102,7 @@ class Answer(Message):
     request_id: str
     mode: Literal["mock", "live"]
     embedding_backend: str
-    status: Literal["answered", "partial", "no_evidence", "failed"]
+    status: AnswerStatus
     answer: str
     plan: Plan | None
     results: list[AgentResult]

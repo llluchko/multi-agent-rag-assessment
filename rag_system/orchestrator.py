@@ -9,7 +9,7 @@ from .domain_agents import DomainAgent, validate_claims
 from .llm import LLMError
 from .models import DOMAINS, AgentResult, Answer, Conflict, Draft, Feedback, Plan, Query
 from .query_classifier import QueryClassifier
-from .utils import cited_source_ids, render, resolve_conflict
+from .utils import answer_status, cited_source_ids, render, resolve_conflict
 
 SYNTHESIS_PROMPT = """Combine the supplied domain claims into a coherent concise answer.
 Use only supplied claims and their cited sources. Preserve conditions and uncertainty.
@@ -77,20 +77,26 @@ class Orchestrator:
 
     def _resolve_conflicts(self, results: list[AgentResult], text: str) -> list[Conflict]:
         """Preserve raw retrieval; replace each agent's evidence with approved sources."""
+        # 1. Collect each fact once, even when multiple agents retrieved it.
+        documents_by_fact = {}
+        for result in results:
+            for hit in result.retrieved:
+                documents_by_fact.setdefault(hit.document.fact, hit.document)
+
+        # 2. Apply the same decision to every agent that uses this fact.
         approved_by_fact, conflicts = {}, []
+        for fact, document in documents_by_fact.items():
+            peers = self.store.peers(document, text)
+            approved_by_fact[fact], conflict = resolve_conflict(peers)
+            if conflict:
+                conflicts.append(conflict)
+
+        # 3. Give each agent its approved, deduplicated context (possibly cross-domain).
         for result in results:
             selected = {}
             for hit in result.retrieved:
-                fact = hit.document.fact
-                if fact not in approved_by_fact:
-                    peers = self.store.peers(hit.document, text)
-                    approved_by_fact[fact], conflict = resolve_conflict(peers)
-                    if conflict:
-                        conflicts.append(conflict)
-                # Deduplicate sources; peer policies may belong to another domain.
-                selected.update(
-                    {source.document.source_id: source for source in approved_by_fact[fact]}
-                )
+                for source in approved_by_fact[hit.document.fact]:
+                    selected[source.document.source_id] = source
             result.evidence = list(selected.values())
         return conflicts
 
@@ -131,18 +137,7 @@ class Orchestrator:
         cited = cited_source_ids(draft.claims)
         sources = {e.document.source_id: e for r in results for e in r.evidence}
         unresolved = any(c.selected_source_id is None for c in conflicts)
-        missing = False
-        for result in results:
-            domain_sources = cited_source_ids(result.claims)
-            if result.error or not cited.intersection(domain_sources):
-                missing = True
-                break
-        if error or (results and all(r.error for r in results)):
-            status = "failed"
-        elif not draft.claims:
-            status = "no_evidence"
-        else:
-            status = "partial" if missing or unresolved else "answered"
+        status = answer_status(results, draft, conflicts, error)
         answer_text = (
             render(draft) if draft.claims else "Insufficient evidence to answer this question."
         )
