@@ -9,7 +9,7 @@ from .domain_agents import DomainAgent, validate_claims
 from .llm import LLMError
 from .models import DOMAINS, AgentResult, Answer, Conflict, Draft, Feedback, Plan, Query
 from .query_classifier import QueryClassifier
-from .utils import render, resolve_conflict
+from .utils import cited_source_ids, render, resolve_conflict
 
 SYNTHESIS_PROMPT = """Combine the supplied domain claims into a coherent concise answer.
 Use only supplied claims and their cited sources. Preserve conditions and uncertainty.
@@ -77,23 +77,20 @@ class Orchestrator:
 
     def _resolve_conflicts(self, results: list[AgentResult], text: str) -> list[Conflict]:
         """Preserve raw retrieval; replace each agent's evidence with approved sources."""
-        approved, conflicts = {}, []
+        approved_by_fact, conflicts = {}, []
         for result in results:
+            selected = {}
             for hit in result.retrieved:
                 fact = hit.document.fact
-                if fact not in approved:
-                    approved[fact], conflict = resolve_conflict(
-                        self.store.peers(hit.document, text)
-                    )
+                if fact not in approved_by_fact:
+                    peers = self.store.peers(hit.document, text)
+                    approved_by_fact[fact], conflict = resolve_conflict(peers)
                     if conflict:
                         conflicts.append(conflict)
-        for result in results:
-            # A peer policy may come from another KB; retain its true source domain.
-            selected = {
-                e.document.source_id: e
-                for hit in result.retrieved
-                for e in approved[hit.document.fact]
-            }
+                # Deduplicate sources; peer policies may belong to another domain.
+                selected.update(
+                    {source.document.source_id: source for source in approved_by_fact[fact]}
+                )
             result.evidence = list(selected.values())
         return conflicts
 
@@ -104,12 +101,12 @@ class Orchestrator:
 
     def _synthesize(self, results: list[AgentResult], text: str) -> Draft:
         """Combine validated domain claims using only the sources they actually cite."""
-        evidence = {
-            e.document.source_id: e
-            for result in results
-            for e in result.evidence
-            if any(e.document.source_id in claim.source_ids for claim in result.claims)
-        }
+        evidence = {}
+        for result in results:
+            cited = cited_source_ids(result.claims)
+            for source in result.evidence:
+                if source.document.source_id in cited:
+                    evidence[source.document.source_id] = source
         if not evidence:
             return Draft(claims=[])
         draft = self.llm.generate(
@@ -131,17 +128,15 @@ class Orchestrator:
 
     def _response(self, plan, results, conflicts, draft, error, timings, started, before) -> Answer:
         """Derive completeness in code and attach the evidence and execution trace."""
-        cited = {s for c in draft.claims for s in c.source_ids}
+        cited = cited_source_ids(draft.claims)
         sources = {e.document.source_id: e for r in results for e in r.evidence}
         unresolved = any(c.selected_source_id is None for c in conflicts)
-        missing = any(
-            not r.claims
-            or r.error
-            or not cited.intersection(
-                source_id for claim in r.claims for source_id in claim.source_ids
-            )
-            for r in results
-        )
+        missing = False
+        for result in results:
+            domain_sources = cited_source_ids(result.claims)
+            if result.error or not cited.intersection(domain_sources):
+                missing = True
+                break
         if error or (results and all(r.error for r in results)):
             status = "failed"
         elif not draft.claims:

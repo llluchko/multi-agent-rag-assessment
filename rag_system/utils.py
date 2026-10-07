@@ -1,6 +1,14 @@
 """Deterministic conflict policy and source-labelled rendering."""
 
-from .models import Conflict, Draft, Evidence
+from .models import Claim, Conflict, Draft, Evidence
+
+
+def cited_source_ids(claims: list[Claim]) -> set[str]:
+    """Collect unique source IDs without repeatedly scanning the same claims."""
+    source_ids = set()
+    for claim in claims:
+        source_ids.update(claim.source_ids)
+    return source_ids
 
 
 def resolve_conflict(candidates: list[Evidence]) -> tuple[list[Evidence], Conflict | None]:
