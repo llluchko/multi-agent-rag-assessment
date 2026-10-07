@@ -1,0 +1,596 @@
+{
+  "mode": "mock",
+  "embedding_backend": "fastembed:sentence-transformers/all-MiniLM-L6-v2",
+  "cases": 24,
+  "routing_accuracy": 1.0,
+  "mean_retrieval_recall_at_dynamic_k": 1.0,
+  "diagnostic_success_rate": 0.9583333333333334,
+  "definition": "Diagnostic success checks routing, expected sources and abstention. It does not prove claim entailment or answer quality.",
+  "rows": [
+    {
+      "id": "deployment",
+      "group": "assignment",
+      "routing_correct": true,
+      "retrieval_recall_at_dynamic_k": 1.0,
+      "expected_source_recall_in_answer": 1.0,
+      "expected_status": true,
+      "status": "answered",
+      "diagnostic_pass": true,
+      "latency_ms": 100.04,
+      "llm_calls": 4,
+      "retrieved": [
+        "comp-access",
+        "comp-data",
+        "comp-debug",
+        "comp-deploy",
+        "comp-encryption",
+        "tech-capacity",
+        "tech-deploy",
+        "tech-pipeline",
+        "tech-rollback"
+      ],
+      "cited": [
+        "comp-access",
+        "comp-data",
+        "comp-debug",
+        "comp-deploy",
+        "comp-encryption",
+        "tech-capacity",
+        "tech-deploy",
+        "tech-pipeline",
+        "tech-rollback"
+      ]
+    },
+    {
+      "id": "performance",
+      "group": "assignment",
+      "routing_correct": true,
+      "retrieval_recall_at_dynamic_k": 1.0,
+      "expected_source_recall_in_answer": 1.0,
+      "expected_status": true,
+      "status": "answered",
+      "diagnostic_pass": true,
+      "latency_ms": 60.13,
+      "llm_calls": 4,
+      "retrieved": [
+        "comp-access",
+        "comp-data",
+        "comp-debug",
+        "comp-deploy",
+        "comp-retention",
+        "tech-capacity",
+        "tech-logs",
+        "tech-performance"
+      ],
+      "cited": [
+        "comp-access",
+        "comp-data",
+        "comp-debug",
+        "comp-deploy",
+        "comp-retention",
+        "tech-capacity",
+        "tech-performance"
+      ]
+    },
+    {
+      "id": "workflow",
+      "group": "assignment",
+      "routing_correct": true,
+      "retrieval_recall_at_dynamic_k": 1.0,
+      "expected_source_recall_in_answer": 1.0,
+      "expected_status": true,
+      "status": "answered",
+      "diagnostic_pass": true,
+      "latency_ms": 95.87,
+      "llm_calls": 5,
+      "retrieved": [
+        "biz-approvals",
+        "biz-budget",
+        "biz-priority",
+        "biz-release",
+        "comp-access",
+        "comp-data",
+        "comp-debug",
+        "comp-deploy",
+        "comp-encryption",
+        "tech-pipeline"
+      ],
+      "cited": [
+        "biz-approvals",
+        "biz-budget",
+        "biz-priority",
+        "biz-release",
+        "comp-access",
+        "comp-data",
+        "comp-debug",
+        "comp-deploy",
+        "comp-encryption",
+        "tech-pipeline"
+      ]
+    },
+    {
+      "id": "deploy",
+      "group": "additional",
+      "routing_correct": true,
+      "retrieval_recall_at_dynamic_k": 1.0,
+      "expected_source_recall_in_answer": 1.0,
+      "expected_status": true,
+      "status": "answered",
+      "diagnostic_pass": true,
+      "latency_ms": 17.36,
+      "llm_calls": 3,
+      "retrieved": [
+        "tech-deploy",
+        "tech-rollback"
+      ],
+      "cited": [
+        "tech-deploy",
+        "tech-rollback"
+      ]
+    },
+    {
+      "id": "debug",
+      "group": "additional",
+      "routing_correct": true,
+      "retrieval_recall_at_dynamic_k": 1.0,
+      "expected_source_recall_in_answer": 1.0,
+      "expected_status": true,
+      "status": "answered",
+      "diagnostic_pass": true,
+      "latency_ms": 15.9,
+      "llm_calls": 3,
+      "retrieved": [
+        "tech-capacity",
+        "tech-performance"
+      ],
+      "cited": [
+        "tech-capacity",
+        "tech-performance"
+      ]
+    },
+    {
+      "id": "rollback",
+      "group": "additional",
+      "routing_correct": true,
+      "retrieval_recall_at_dynamic_k": 1.0,
+      "expected_source_recall_in_answer": 1.0,
+      "expected_status": true,
+      "status": "answered",
+      "diagnostic_pass": true,
+      "latency_ms": 18.9,
+      "llm_calls": 3,
+      "retrieved": [
+        "tech-deploy",
+        "tech-rollback"
+      ],
+      "cited": [
+        "tech-deploy",
+        "tech-rollback"
+      ]
+    },
+    {
+      "id": "budget",
+      "group": "additional",
+      "routing_correct": true,
+      "retrieval_recall_at_dynamic_k": 1.0,
+      "expected_source_recall_in_answer": 1.0,
+      "expected_status": true,
+      "status": "answered",
+      "diagnostic_pass": true,
+      "latency_ms": 18.71,
+      "llm_calls": 3,
+      "retrieved": [
+        "biz-approvals",
+        "biz-budget"
+      ],
+      "cited": [
+        "biz-approvals",
+        "biz-budget"
+      ]
+    },
+    {
+      "id": "owner",
+      "group": "additional",
+      "routing_correct": true,
+      "retrieval_recall_at_dynamic_k": 1.0,
+      "expected_source_recall_in_answer": 1.0,
+      "expected_status": true,
+      "status": "answered",
+      "diagnostic_pass": true,
+      "latency_ms": 38.26,
+      "llm_calls": 4,
+      "retrieved": [
+        "biz-budget",
+        "biz-owner",
+        "biz-priority",
+        "biz-release",
+        "tech-deploy"
+      ],
+      "cited": [
+        "biz-budget",
+        "biz-owner",
+        "biz-priority",
+        "biz-release",
+        "tech-deploy"
+      ]
+    },
+    {
+      "id": "retention",
+      "group": "additional",
+      "routing_correct": true,
+      "retrieval_recall_at_dynamic_k": 1.0,
+      "expected_source_recall_in_answer": 1.0,
+      "expected_status": true,
+      "status": "answered",
+      "diagnostic_pass": true,
+      "latency_ms": 60.94,
+      "llm_calls": 4,
+      "retrieved": [
+        "comp-access",
+        "comp-data",
+        "comp-debug",
+        "comp-deploy",
+        "comp-retention",
+        "tech-capacity",
+        "tech-deploy",
+        "tech-logs",
+        "tech-performance"
+      ],
+      "cited": [
+        "comp-access",
+        "comp-data",
+        "comp-debug",
+        "comp-deploy",
+        "comp-retention",
+        "tech-capacity",
+        "tech-deploy",
+        "tech-performance"
+      ]
+    },
+    {
+      "id": "encryption",
+      "group": "additional",
+      "routing_correct": true,
+      "retrieval_recall_at_dynamic_k": 1.0,
+      "expected_source_recall_in_answer": 1.0,
+      "expected_status": true,
+      "status": "answered",
+      "diagnostic_pass": true,
+      "latency_ms": 28.21,
+      "llm_calls": 3,
+      "retrieved": [
+        "comp-data",
+        "comp-debug",
+        "comp-encryption"
+      ],
+      "cited": [
+        "comp-data",
+        "comp-debug",
+        "comp-encryption"
+      ]
+    },
+    {
+      "id": "access",
+      "group": "additional",
+      "routing_correct": true,
+      "retrieval_recall_at_dynamic_k": 1.0,
+      "expected_source_recall_in_answer": 1.0,
+      "expected_status": true,
+      "status": "answered",
+      "diagnostic_pass": true,
+      "latency_ms": 27.29,
+      "llm_calls": 3,
+      "retrieved": [
+        "comp-access",
+        "comp-debug",
+        "comp-deploy"
+      ],
+      "cited": [
+        "comp-access",
+        "comp-debug",
+        "comp-deploy"
+      ]
+    },
+    {
+      "id": "unrelated",
+      "group": "additional",
+      "routing_correct": true,
+      "retrieval_recall_at_dynamic_k": null,
+      "expected_source_recall_in_answer": null,
+      "expected_status": true,
+      "status": "no_evidence",
+      "diagnostic_pass": true,
+      "latency_ms": 0.04,
+      "llm_calls": 1,
+      "retrieved": [],
+      "cited": []
+    },
+    {
+      "id": "deploy-security",
+      "group": "additional",
+      "routing_correct": true,
+      "retrieval_recall_at_dynamic_k": 1.0,
+      "expected_source_recall_in_answer": 1.0,
+      "expected_status": true,
+      "status": "answered",
+      "diagnostic_pass": true,
+      "latency_ms": 78.72,
+      "llm_calls": 4,
+      "retrieved": [
+        "comp-access",
+        "comp-data",
+        "comp-debug",
+        "comp-deploy",
+        "comp-encryption",
+        "tech-capacity",
+        "tech-deploy",
+        "tech-pipeline",
+        "tech-rollback"
+      ],
+      "cited": [
+        "comp-access",
+        "comp-data",
+        "comp-debug",
+        "comp-deploy",
+        "comp-encryption",
+        "tech-capacity",
+        "tech-deploy",
+        "tech-pipeline",
+        "tech-rollback"
+      ]
+    },
+    {
+      "id": "secure-debug",
+      "group": "additional",
+      "routing_correct": true,
+      "retrieval_recall_at_dynamic_k": 1.0,
+      "expected_source_recall_in_answer": 1.0,
+      "expected_status": true,
+      "status": "answered",
+      "diagnostic_pass": true,
+      "latency_ms": 66.03,
+      "llm_calls": 4,
+      "retrieved": [
+        "comp-access",
+        "comp-data",
+        "comp-debug",
+        "comp-deploy",
+        "comp-retention",
+        "tech-capacity",
+        "tech-logs",
+        "tech-performance"
+      ],
+      "cited": [
+        "comp-access",
+        "comp-data",
+        "comp-debug",
+        "comp-deploy",
+        "comp-retention",
+        "tech-capacity",
+        "tech-performance"
+      ]
+    },
+    {
+      "id": "capacity",
+      "group": "additional",
+      "routing_correct": true,
+      "retrieval_recall_at_dynamic_k": 1.0,
+      "expected_source_recall_in_answer": 1.0,
+      "expected_status": true,
+      "status": "answered",
+      "diagnostic_pass": true,
+      "latency_ms": 24.46,
+      "llm_calls": 3,
+      "retrieved": [
+        "tech-capacity",
+        "tech-performance"
+      ],
+      "cited": [
+        "tech-capacity",
+        "tech-performance"
+      ]
+    },
+    {
+      "id": "spending",
+      "group": "additional",
+      "routing_correct": true,
+      "retrieval_recall_at_dynamic_k": 1.0,
+      "expected_source_recall_in_answer": 1.0,
+      "expected_status": true,
+      "status": "answered",
+      "diagnostic_pass": true,
+      "latency_ms": 46.96,
+      "llm_calls": 4,
+      "retrieved": [
+        "biz-budget",
+        "biz-owner",
+        "biz-priority",
+        "biz-vendor",
+        "tech-capacity"
+      ],
+      "cited": [
+        "biz-budget",
+        "biz-owner",
+        "biz-priority",
+        "biz-vendor",
+        "tech-capacity"
+      ]
+    },
+    {
+      "id": "release-approval",
+      "group": "additional",
+      "routing_correct": true,
+      "retrieval_recall_at_dynamic_k": 1.0,
+      "expected_source_recall_in_answer": 1.0,
+      "expected_status": true,
+      "status": "answered",
+      "diagnostic_pass": true,
+      "latency_ms": 20.92,
+      "llm_calls": 3,
+      "retrieved": [
+        "biz-budget",
+        "biz-release"
+      ],
+      "cited": [
+        "biz-budget",
+        "biz-release"
+      ]
+    },
+    {
+      "id": "vendor",
+      "group": "additional",
+      "routing_correct": true,
+      "retrieval_recall_at_dynamic_k": 1.0,
+      "expected_source_recall_in_answer": 1.0,
+      "expected_status": true,
+      "status": "answered",
+      "diagnostic_pass": true,
+      "latency_ms": 22.87,
+      "llm_calls": 3,
+      "retrieved": [
+        "biz-budget",
+        "biz-vendor"
+      ],
+      "cited": [
+        "biz-budget",
+        "biz-vendor"
+      ]
+    },
+    {
+      "id": "priority",
+      "group": "additional",
+      "routing_correct": true,
+      "retrieval_recall_at_dynamic_k": 1.0,
+      "expected_source_recall_in_answer": 1.0,
+      "expected_status": true,
+      "status": "answered",
+      "diagnostic_pass": true,
+      "latency_ms": 21.43,
+      "llm_calls": 3,
+      "retrieved": [
+        "biz-budget",
+        "biz-priority"
+      ],
+      "cited": [
+        "biz-budget",
+        "biz-priority"
+      ]
+    },
+    {
+      "id": "data-review",
+      "group": "additional",
+      "routing_correct": true,
+      "retrieval_recall_at_dynamic_k": 1.0,
+      "expected_source_recall_in_answer": 1.0,
+      "expected_status": true,
+      "status": "answered",
+      "diagnostic_pass": true,
+      "latency_ms": 104.71,
+      "llm_calls": 5,
+      "retrieved": [
+        "biz-approvals",
+        "biz-budget",
+        "biz-priority",
+        "biz-vendor",
+        "comp-access",
+        "comp-data",
+        "comp-debug",
+        "comp-deploy",
+        "comp-encryption",
+        "tech-performance",
+        "tech-pipeline"
+      ],
+      "cited": [
+        "biz-approvals",
+        "biz-budget",
+        "biz-priority",
+        "biz-vendor",
+        "comp-access",
+        "comp-data",
+        "comp-debug",
+        "comp-deploy",
+        "comp-encryption",
+        "tech-performance",
+        "tech-pipeline"
+      ]
+    },
+    {
+      "id": "personal",
+      "group": "additional",
+      "routing_correct": true,
+      "retrieval_recall_at_dynamic_k": 1.0,
+      "expected_source_recall_in_answer": 1.0,
+      "expected_status": true,
+      "status": "answered",
+      "diagnostic_pass": true,
+      "latency_ms": 28.53,
+      "llm_calls": 3,
+      "retrieved": [
+        "comp-data",
+        "comp-debug",
+        "comp-encryption"
+      ],
+      "cited": [
+        "comp-data",
+        "comp-debug",
+        "comp-encryption"
+      ]
+    },
+    {
+      "id": "access-review",
+      "group": "additional",
+      "routing_correct": true,
+      "retrieval_recall_at_dynamic_k": 1.0,
+      "expected_source_recall_in_answer": 1.0,
+      "expected_status": true,
+      "status": "answered",
+      "diagnostic_pass": true,
+      "latency_ms": 22.06,
+      "llm_calls": 3,
+      "retrieved": [
+        "comp-access",
+        "comp-data",
+        "comp-deploy"
+      ],
+      "cited": [
+        "comp-access",
+        "comp-data",
+        "comp-deploy"
+      ]
+    },
+    {
+      "id": "unknown-tech",
+      "group": "additional",
+      "routing_correct": true,
+      "retrieval_recall_at_dynamic_k": null,
+      "expected_source_recall_in_answer": null,
+      "expected_status": false,
+      "status": "answered",
+      "diagnostic_pass": false,
+      "latency_ms": 22.21,
+      "llm_calls": 3,
+      "retrieved": [
+        "tech-performance",
+        "tech-rollback"
+      ],
+      "cited": [
+        "tech-performance",
+        "tech-rollback"
+      ]
+    },
+    {
+      "id": "unrelated-food",
+      "group": "additional",
+      "routing_correct": true,
+      "retrieval_recall_at_dynamic_k": null,
+      "expected_source_recall_in_answer": null,
+      "expected_status": true,
+      "status": "no_evidence",
+      "diagnostic_pass": true,
+      "latency_ms": 0.04,
+      "llm_calls": 1,
+      "retrieved": [],
+      "cited": []
+    }
+  ]
+}
