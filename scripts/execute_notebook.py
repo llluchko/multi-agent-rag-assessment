@@ -1,6 +1,5 @@
 """Execute all cells using this Python environment; no preinstalled kernel needed."""
 
-import os
 import sys
 from pathlib import Path
 
@@ -23,6 +22,4 @@ finally:
     if manager.has_kernel:
         manager.shutdown_kernel(now=True)
 nbformat.write(notebook, path)
-print(
-    f"Executed {sum(c.cell_type == 'code' for c in notebook.cells)} cells; mode={os.getenv('RAG_MODE', 'mock')}."
-)
+print(f"Executed {sum(c.cell_type == 'code' for c in notebook.cells)} cells successfully.")

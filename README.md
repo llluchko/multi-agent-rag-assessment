@@ -120,6 +120,9 @@ The tests check required domains, expected sources, completion and token usage;
 they do not prove that every generated statement is correct.
 The notebook also has an optional local live-test cell: set `RUN_LOCAL_LIVE_TEST = True`
 there to run the same three scenarios while keeping the rest of the demo in mock mode.
+The first notebook cell sets `DEMO_MODE="mock"` explicitly, independently of the API's
+environment. To use Ollama throughout the notebook, change it to `"live"` and keep
+`DEMO_PROVIDER="ollama"`. Restart the kernel and clear old outputs when switching modes.
 
 ## Development without Docker
 
