@@ -1,0 +1,38 @@
+x-environment: &environment
+  RAG_MODE: ${RAG_MODE:-mock}
+  EMBEDDING_BACKEND: ${EMBEDDING_BACKEND:-fastembed}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini-2025-04-14}
+  EMBEDDING_CACHE: /app/.cache/models
+  HF_HUB_DISABLE_TELEMETRY: '1'
+
+services:
+  api:
+    build: .
+    environment: *environment
+    ports:
+      - '127.0.0.1:8000:8000'
+    volumes:
+      - model-cache:/app/.cache
+    healthcheck:
+      test: ['CMD', 'python', '-c', "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 30
+      start_period: 60s
+
+  notebook:
+    build: .
+    environment: *environment
+    command: ['python', '-m', 'jupyterlab', '--ip=0.0.0.0', '--port=8888', '--no-browser']
+    ports:
+      - '127.0.0.1:8888:8888'
+    volumes:
+      - model-cache:/app/.cache
+      - ./notebooks:/app/notebooks
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  model-cache:

@@ -1,0 +1,296 @@
+[
+  {
+    "id": "deployment",
+    "group": "assignment",
+    "query": "What\u2019s the process for deploying a new microservice and what compliance checks are needed?",
+    "domains": [
+      "technical",
+      "compliance"
+    ],
+    "relevant_documents": [
+      "tech-deploy",
+      "comp-deploy"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "performance",
+    "group": "assignment",
+    "query": "How do I troubleshoot API performance issues while following our security policies?",
+    "domains": [
+      "technical",
+      "compliance"
+    ],
+    "relevant_documents": [
+      "tech-performance",
+      "comp-debug"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "workflow",
+    "group": "assignment",
+    "query": "What business approvals are required for implementing a new data processing workflow?",
+    "domains": [
+      "technical",
+      "business",
+      "compliance"
+    ],
+    "relevant_documents": [
+      "biz-approvals",
+      "comp-data"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "deploy",
+    "group": "additional",
+    "query": "How do I deploy a microservice?",
+    "domains": [
+      "technical"
+    ],
+    "relevant_documents": [
+      "tech-deploy"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "debug",
+    "group": "additional",
+    "query": "How do I troubleshoot API performance?",
+    "domains": [
+      "technical"
+    ],
+    "relevant_documents": [
+      "tech-performance"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "rollback",
+    "group": "additional",
+    "query": "What is the rollback procedure after a failed deployment?",
+    "domains": [
+      "technical"
+    ],
+    "relevant_documents": [
+      "tech-rollback"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "budget",
+    "group": "additional",
+    "query": "Who approves budget for new infrastructure spending?",
+    "domains": [
+      "business"
+    ],
+    "relevant_documents": [
+      "biz-budget"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "owner",
+    "group": "additional",
+    "query": "Who owns a microservice?",
+    "domains": [
+      "technical",
+      "business"
+    ],
+    "relevant_documents": [
+      "biz-owner"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "retention",
+    "group": "additional",
+    "query": "How long should we retain production API request logs?",
+    "domains": [
+      "technical",
+      "compliance"
+    ],
+    "relevant_documents": [
+      "comp-retention"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "encryption",
+    "group": "additional",
+    "query": "How should we encrypt personal data?",
+    "domains": [
+      "compliance"
+    ],
+    "relevant_documents": [
+      "comp-encryption"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "access",
+    "group": "additional",
+    "query": "What does the production access policy require?",
+    "domains": [
+      "compliance"
+    ],
+    "relevant_documents": [
+      "comp-access"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "unrelated",
+    "group": "additional",
+    "query": "Who won the World Cup? ",
+    "domains": [],
+    "relevant_documents": [],
+    "answerable": false
+  },
+  {
+    "id": "deploy-security",
+    "group": "additional",
+    "query": "Describe microservice deployment security checks.",
+    "domains": [
+      "technical",
+      "compliance"
+    ],
+    "relevant_documents": [
+      "tech-deploy",
+      "comp-deploy"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "secure-debug",
+    "group": "additional",
+    "query": "Which security policies apply when troubleshooting slow API requests?",
+    "domains": [
+      "technical",
+      "compliance"
+    ],
+    "relevant_documents": [
+      "comp-debug",
+      "tech-performance"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "capacity",
+    "group": "additional",
+    "query": "What should I measure before scaling API capacity?",
+    "domains": [
+      "technical"
+    ],
+    "relevant_documents": [
+      "tech-capacity"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "spending",
+    "group": "additional",
+    "query": "Who authorizes a purchase of extra infrastructure capacity?",
+    "domains": [
+      "technical",
+      "business"
+    ],
+    "relevant_documents": [
+      "biz-budget"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "release-approval",
+    "group": "additional",
+    "query": "Who approves a production release change ticket?",
+    "domains": [
+      "business"
+    ],
+    "relevant_documents": [
+      "biz-release"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "vendor",
+    "group": "additional",
+    "query": "What business reviews are needed for vendor procurement?",
+    "domains": [
+      "business"
+    ],
+    "relevant_documents": [
+      "biz-vendor"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "priority",
+    "group": "additional",
+    "query": "How are workflow requests prioritized?",
+    "domains": [
+      "business"
+    ],
+    "relevant_documents": [
+      "biz-priority"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "data-review",
+    "group": "additional",
+    "query": "Which privacy and security reviews are required for data processing?",
+    "domains": [
+      "technical",
+      "business",
+      "compliance"
+    ],
+    "relevant_documents": [
+      "comp-data"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "personal",
+    "group": "additional",
+    "query": "What are the encryption requirements for personal data at rest?",
+    "domains": [
+      "compliance"
+    ],
+    "relevant_documents": [
+      "comp-encryption"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "access-review",
+    "group": "additional",
+    "query": "How often is production access reviewed?",
+    "domains": [
+      "compliance"
+    ],
+    "relevant_documents": [
+      "comp-access"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "unknown-tech",
+    "group": "additional",
+    "query": "How do I repair the quantum database flux capacitor API?",
+    "domains": [
+      "technical"
+    ],
+    "relevant_documents": [],
+    "answerable": false
+  },
+  {
+    "id": "unrelated-food",
+    "group": "additional",
+    "query": "Give me a recipe for apple pie.",
+    "domains": [],
+    "relevant_documents": [],
+    "answerable": false
+  }
+]
