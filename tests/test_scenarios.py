@@ -223,20 +223,25 @@ def test_real_semantic_retrieval():
 
 
 @pytest.mark.live
-def test_live_model():
+@pytest.mark.parametrize("query,domains,sources", SCENARIOS)
+def test_live_model(query, domains, sources):
     import os
 
     if os.getenv("RUN_LIVE_LLM") != "1":
-        pytest.skip("Explicit RUN_LIVE_LLM=1 and API key required; incurs provider usage")
+        pytest.skip("Set RUN_LIVE_LLM=1; uses LLM_PROVIDER (OpenAI is paid, Ollama is local)")
     system = build_system("live", "fastembed")
-    a = system.query(SCENARIOS[0][0])
+    a = system.query(query)
     assert a.status == "answered", {
         "status": a.status,
         "error": a.error,
         "domain_errors": {r.task.domain: r.error for r in a.results if r.error},
     }
-    assert a.citations
-    assert {"technical", "compliance"} == {t.domain for t in a.plan.tasks}
+    assert sources <= {e.document.id for e in a.citations}
+    # The approvals question needs business and compliance; implementation steps are optional.
+    required = domains - {"technical"} if "business" in domains else domains
+    assert required <= {t.domain for t in a.plan.tasks}
+    assert all(result.claims and not result.error for result in a.results)
+    assert a.input_tokens > 0 and a.output_tokens > 0
 
 
 def test_synthesis_cannot_silently_drop_a_domain(system):

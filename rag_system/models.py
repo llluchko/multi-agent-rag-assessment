@@ -46,12 +46,17 @@ class Query(Message):
         return value
 
 
+# Planning: which agents participate and what each one should answer.
 class Task(Message):
+    """One domain and its subquestion; this is data, not an executable job."""
+
     domain: Domain
     subquery: str = Field(min_length=3, max_length=2000)
 
 
 class Plan(Message):
+    """Up to three tasks, with a shared retrieval complexity and routing explanation."""
+
     tasks: list[Task] = Field(max_length=3)
     complexity: Literal["simple", "complex"]
     reason: str = Field(min_length=1, max_length=500)
@@ -63,15 +68,21 @@ class Plan(Message):
         return self
 
 
+# Generation: what the model says and which sources support it.
 class Claim(Message):
+    """One statement with source IDs, used by both domain answers and synthesis."""
+
     text: str = Field(min_length=1, max_length=2000)
     source_ids: list[str] = Field(min_length=1, max_length=10)
 
 
 class Draft(Message):
+    """The LLM's output envelope: a list of claims, before execution metadata is added."""
+
     claims: list[Claim] = Field(max_length=12)
 
 
+# Trace: source snapshots, conflict decisions and partial agent results.
 class Evidence(Message):
     document: Document
     similarity: float
@@ -98,6 +109,7 @@ class AgentResult(Message):
     error: str | None = None
 
 
+# API boundary: the complete result and optional user feedback.
 class Answer(Message):
     request_id: str
     mode: Literal["mock", "live"]

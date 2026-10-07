@@ -1,5 +1,8 @@
 x-environment: &environment
   RAG_MODE: ${RAG_MODE:-mock}
+  LLM_PROVIDER: ${LLM_PROVIDER:-openai}
+  OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:4b}
+  OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
   EMBEDDING_BACKEND: ${EMBEDDING_BACKEND:-fastembed}
   OPENAI_API_KEY: ${OPENAI_API_KEY:-}
   OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini-2025-04-14}
@@ -9,6 +12,8 @@ x-environment: &environment
 services:
   api:
     build: .
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
     environment: *environment
     ports:
       - '127.0.0.1:8000:8000'
@@ -23,6 +28,8 @@ services:
 
   notebook:
     build: .
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
     environment: *environment
     command: ['python', '-m', 'jupyterlab', '--ip=0.0.0.0', '--port=8888', '--no-browser']
     ports:

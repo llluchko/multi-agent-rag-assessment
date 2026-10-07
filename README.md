@@ -51,12 +51,51 @@ For generated answers, edit `.env`:
 
 ```dotenv
 RAG_MODE=live
+LLM_PROVIDER=openai
 OPENAI_API_KEY=your-key
 ```
 
 Run `docker compose --profile ui up -d` again to apply the configuration, then restart
-any open notebook kernel. `OPENAI_MODEL` selects the model. Live mode sends questions
+any open notebook kernel. `OPENAI_MODEL` selects the model. This provider sends questions
 and retrieved passages to OpenAI and incurs API usage; it never silently falls back to mock.
+
+### Free local LLM with Ollama
+
+Install [Ollama](https://ollama.com/download) on the host and start it (`ollama serve`
+in another terminal if the app is not running). Download the model once:
+
+```sh
+ollama pull qwen3:4b
+```
+
+For Docker Desktop, set these values in `.env` (no API key needed):
+
+```dotenv
+RAG_MODE=live
+LLM_PROVIDER=ollama
+OLLAMA_MODEL=qwen3:4b
+OLLAMA_URL=http://host.docker.internal:11434
+```
+
+Rebuild with `docker compose --profile ui up --build -d`, then restart the notebook
+kernel. `/health` reports `mode: live` and `llm_provider: ollama`. Ollama runs on the
+host; the API and notebook stay in Docker. On Linux, the host Ollama listener must
+be reachable from the Docker gateway; alternatively use native Python with
+`OLLAMA_URL=http://localhost:11434`.
+
+Run the three real-model scenarios explicitly:
+
+```sh
+docker compose exec -e RUN_LIVE_LLM=1 -e LLM_PROVIDER=ollama api \
+  python -m pytest tests/test_scenarios.py::test_live_model -v
+```
+
+[Qwen3 4B](https://ollama.com/library/qwen3:4b) has an Apache 2.0 license; its Ollama download is about 2.5 GB.
+Local inference uses your machine's memory and compute, with no per-request API fee.
+The tests check required domains, expected sources, completion and token usage;
+they do not prove that every generated statement is correct.
+The notebook also has an optional local live-test cell: set `RUN_LOCAL_LIVE_TEST = True`
+there to run the same three scenarios while keeping the rest of the demo in mock mode.
 
 ## Development without Docker
 
@@ -82,8 +121,9 @@ docker compose exec -e RUN_SEMANTIC=1 api python -m pytest -q
 docker compose exec api python -m scripts.evaluate
 ```
 
-The first suite uses test doubles; the second includes MiniLM. The paid live test is
-opt-in (`RUN_LIVE_LLM=1`) and requires an API key. Native equivalents use the same
+The first suite uses test doubles; the second includes MiniLM. Live tests are
+opt-in (`RUN_LIVE_LLM=1`) and use `LLM_PROVIDER` (OpenAI needs a key; Ollama does not).
+Native equivalents use the same
 `python -m ...` commands. Run `python -m ruff check .` and
 `python -m ruff format --check .` for Python style; `npm run build` checks React.
 
@@ -92,7 +132,7 @@ opt-in (`RUN_LIVE_LLM=1`) and requires an API key. Native equivalents use the sa
 The corpus contains 18 short synthetic English documents. Documents, vectors,
 feedback and metrics live in memory; restarting resets them. Notebook and API have
 independent state. Use one API worker. This local application has no authentication
-or conversational memory. Live answer quality has not yet been verified.
+or conversational memory. Generated answers still need review against their sources.
 
 See the [code and concepts guide (Bulgarian)](docs/code_walkthrough.bg.md) for the
 execution flow, Python examples, evaluation limits and steps toward production.

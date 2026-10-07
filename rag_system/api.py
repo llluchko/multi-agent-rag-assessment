@@ -19,7 +19,12 @@ def create_app(system=None) -> FastAPI:
     @app.get("/health")
     def health(request: Request):
         s = request.app.state.system
-        return {"status": "ready", "mode": s.llm.mode, "embedding_backend": s.store.embedder.name}
+        return {
+            "status": "ready",
+            "mode": s.llm.mode,
+            "llm_provider": s.llm.provider,
+            "embedding_backend": s.store.embedder.name,
+        }
 
     @app.post(
         "/query",
