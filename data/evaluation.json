@@ -1,7 +1,7 @@
 [
   {
     "id": "deployment",
-    "group": "assignment",
+    "group": "core",
     "query": "What\u2019s the process for deploying a new microservice and what compliance checks are needed?",
     "domains": [
       "technical",
@@ -15,7 +15,7 @@
   },
   {
     "id": "performance",
-    "group": "assignment",
+    "group": "core",
     "query": "How do I troubleshoot API performance issues while following our security policies?",
     "domains": [
       "technical",
@@ -29,7 +29,7 @@
   },
   {
     "id": "workflow",
-    "group": "assignment",
+    "group": "core",
     "query": "What business approvals are required for implementing a new data processing workflow?",
     "domains": [
       "technical",

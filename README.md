@@ -1,183 +1,81 @@
-# Multi-agent RAG assessment
+# Multi-agent RAG
 
-An inspectable assistant for questions spanning **technical, business and compliance**
-knowledge. A planner decomposes a question, domain agents retrieve their own evidence,
-and an orchestrator resolves conflicts and synthesizes a cited answer.
+A small assistant for technical, business and compliance questions. It retrieves
+relevant documents, resolves annotated conflicts and returns answers with sources.
+Includes a Python core, Jupyter notebook, FastAPI service and optional React UI.
 
-**One Python core, an executable notebook, a FastAPI/OpenAPI service, and an optional React chat.**
-This repository implements the **Technical Task**. The separate Systems Design task
-is still a separate deliverable and is not represented as completed here.
+## Start with Docker
 
-## Quick start with Docker
-
-Prerequisite: Docker with Compose. From the repository root:
+Install and start **Docker Desktop**. Open a terminal in this project folder.
+On the first run, create your local configuration (keep an existing `.env`):
 
 ```sh
 cp .env.example .env
-docker compose up --build
+docker compose --profile ui up --build -d
 ```
 
-- API documentation: <http://localhost:8000/docs>
-- OpenAPI schema: <http://localhost:8000/openapi.json>
-- Jupyter: open the localhost URL with its generated token from the notebook service logs.
-  If needed: `docker compose logs notebook`. Open `notebooks/demo.ipynb` and **Restart Kernel → Run All**.
-- Optional chat: `docker compose --profile ui up --build`, then <http://localhost:5173>.
+- **Chat:** http://localhost:5173
+- **API / Swagger:** http://localhost:8000/docs
+- **Notebook:** run `docker compose logs notebook` and open the
+  `http://127.0.0.1:8888/lab?token=...` link, including the token.
+  Open `notebooks/demo.ipynb` → **Kernel → Restart Kernel and Run All Cells**.
+  If Jupyter asks for a password, paste the token from that link.
 
-Default mode uses **real local MiniLM embeddings and mock text generation**. No API key
-or GPU is required. Initial image builds and the roughly 90 MB embedding download need
-internet. A named volume caches the model. Later cached runs can use `HF_HUB_OFFLINE=1`
-when running natively. The two Python services share the model cache, not application state.
+The first run downloads the images and embedding model. Later runs reuse the cache.
+For API and notebook only, omit `--profile ui`. After changing code, rerun the start
+command to rebuild. To stop everything: `docker compose --profile ui down`.
 
-Docker images were built and the API, notebook and optional UI were started with Docker
-Desktop. The semantic test suite and all ten notebook cells also passed inside containers.
-See [validation](docs/validation.md) for exact evidence and limits.
+## Mock or real LLM
 
-## Native setup
+By default, **MiniLM runs locally to compute real embeddings**, while Python rules
+simulate planning and extract text from retrieved documents. No API key or GPU is needed.
 
-Use Python **3.13**. Commands below are for macOS/Linux; on Windows activate the virtual
-environment using `.venv\Scripts\Activate.ps1`. Docker provides the common runtime.
+For generated answers, edit `.env`:
+
+```dotenv
+RAG_MODE=live
+OPENAI_API_KEY=your-key
+```
+
+Run `docker compose --profile ui up -d` again to apply the configuration, then restart
+any open notebook kernel. `OPENAI_MODEL` selects the model. Live mode sends questions
+and retrieved passages to OpenAI and incurs API usage; it never silently falls back to mock.
+
+## Development without Docker
+
+Use Python 3.13. On macOS/Linux:
 
 ```sh
 python3.13 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt -c constraints.txt
-python -m jupyterlab
-```
-
-In Jupyter select this environment's Python kernel, then **Restart Kernel → Run All**.
-For VS Code, open the repository and select `.venv` as the notebook kernel.
-The notebook initializes its own application and needs no API process.
-
-To start the API in another terminal with the same environment active:
-
-```sh
 python -m uvicorn rag_system.api:app --host 127.0.0.1 --port 8000
 ```
 
-For the optional React client, use Node **22.12+** (Node 24 was tested):
+On Windows, activate with `.venv\Scripts\Activate.ps1`. Native Python does not load
+`.env`; set environment variables in your terminal for live mode.
+Run `python -m jupyterlab` for the notebook. For React, use Node 22.12+ and run
+`npm ci` then `npm run dev` inside `frontend`.
+
+## Checks
 
 ```sh
-cd frontend
-npm ci
-npm run dev
+docker compose exec api python -m pytest -q
+docker compose exec -e RUN_SEMANTIC=1 api python -m pytest -q
+docker compose exec api python -m scripts.evaluate
 ```
 
-Open <http://localhost:5173>. The dev server proxies `/api` to port 8000, so there is no
-browser API key or permissive CORS configuration. `npm run build` type-checks and builds
-static assets. The Docker UI uses a local Vite server, intended only for this demo.
+The first suite uses test doubles; the second includes MiniLM. The paid live test is
+opt-in (`RUN_LIVE_LLM=1`) and requires an API key. Native equivalents use the same
+`python -m ...` commands. Run `python -m ruff check .` and
+`python -m ruff format --check .` for Python style; `npm run build` checks React.
 
-## Real LLM mode
+## Scope
 
-The live adapter calls **OpenAI Responses** with strict JSON Schema. The default model
-is `gpt-4.1-mini-2025-04-14`; `OPENAI_MODEL` can select another compatible model available
-to your account. The model/provider is configured in one place.
+The corpus contains 18 short synthetic English documents. Documents, vectors,
+feedback and metrics live in memory; restarting resets them. Notebook and API have
+independent state. Use one API worker. This local application has no authentication
+or conversational memory. Live answer quality has not yet been verified.
 
-For Docker, edit the untracked `.env`:
-
-```dotenv
-RAG_MODE=live
-OPENAI_API_KEY=your-own-key
-```
-
-Restart the services. For native execution, set these variables in the terminal before
-starting Jupyter or the API. Native Python does not automatically load `.env`.
-Live calls require internet and incur provider usage. Prompts and retrieved synthetic
-passages are sent to OpenAI. Requests set `store=false`.
-
-**Live mode never silently falls back to mock.** Missing credentials fail at startup;
-provider failures are returned with an explicit failed/partial status. No real API
-calls were tested during initial implementation because no key was available.
-
-| Mode | Embeddings | Planner and answers | Purpose |
-| --- | --- | --- | --- |
-| Default `RAG_MODE=mock` | MiniLM, CPU | Lexical routing and extractive simulation | Reproducible demonstration without a key |
-| `RAG_MODE=live` | MiniLM, CPU | Real structured LLM output | Real model demonstration and quality review |
-| `EMBEDDING_BACKEND=lexical` | Hashed word vectors, explicitly labelled | Either configured mode | Download-free contract tests; not semantic retrieval |
-
-## What the demo proves
-
-The ten notebook code cells inspect retrieval, execute the three assignment queries,
-resolve an annotated contradiction, update a document, demonstrate feedback changing
-ranking, withhold an ambiguous conflict, simulate a domain failure, evaluate 24 cases,
-and call the OpenAPI boundary.
-
-Mock routing is intentionally simple and mock synthesis is extractive. It can retrieve
-generic advice for an unanswerable question containing familiar vocabulary; evaluation
-includes such a failing case. Mock success does not measure LLM answer quality.
-
-## API
-
-| Method and path | Contract |
-| --- | --- |
-| `GET /health` | Ready state and active mode/backend; not a live-provider availability probe |
-| `POST /query` | `{ "text": "..." }` → answer, tasks, evidence, citations, conflicts and timings |
-| `PUT /documents/{id}` | Full document; changed content requires a higher version; equal retries are idempotent |
-| `POST /feedback` | `{ "request_id": "...", "source_id": "doc@v1#0", "helpful": true }` |
-| `GET /metrics` | Completion rate, explicit feedback success rate and per-agent timings/errors |
-
-Queries return `answered`, `partial`, `no_evidence` or `failed`. A model failure returns
-HTTP 502 with the trace; empty input returns 422; invalid/stale/duplicate feedback and
-stale document updates return 409. `no_evidence` and `partial` are valid business outcomes,
-not HTTP failures. API schemas and examples can be inspected through `/docs`.
-
-```sh
-curl -s http://localhost:8000/query \
-  -H 'Content-Type: application/json' \
-  -d '{"text":"What is the process for deploying a microservice and what compliance checks are needed?"}'
-```
-
-## Tests and evaluation
-
-```sh
-python -m pytest -q                             # contract tests, no download or key
-RUN_SEMANTIC=1 python -m pytest -q               # add real local embeddings
-RUN_LIVE_LLM=1 python -m pytest -q -m live       # explicit paid live check
-python -m scripts.evaluate                     # report in .cache/evaluation.json
-python scripts/execute_notebook.py              # executes and saves notebook outputs
-python -m ruff check .
-python -m ruff format --check .
-```
-
-`requirements.txt` pins direct dependencies; `constraints.txt` pins the tested transitive
-resolution. The embedding model is pinned to a Hugging Face revision. The frontend has a
-lockfile. Docker base images use version tags rather than immutable digests: this is a
-repeatable demo setup, not a claim of byte-for-byte reproducibility on all platforms.
-
-Evaluation separates routing, **raw retrieval recall at the selected k**, expected-source
-recall in the final answer, and abstention. Its diagnostic success rate is not semantic
-correctness. The cases are development examples, not an independent holdout. Use the
-[manual quality rubric](docs/validation.md#manual-live-quality-review) for actual live outputs.
-
-## Scope and trade-offs
-
-- Eighteen short synthetic English passages, one chunk per document. `#0` identifies that
-  atomic chunk. No general file ingestion. MiniLM truncates long inputs; keep added
-  documents and subqueries short (within its 256-token window).
-- Exact cosine search is adequate here. A production vector database, hybrid search and
-  reranking are follow-up experiments motivated by scale or measured quality gaps.
-- Multi-agent means distinct roles, domain-filtered knowledge and typed messages in one
-  explicit workflow. Agents share the model and implementation; no autonomous loops.
-- Conflicts use annotated `fact_key`, `scope` and canonical `value`. This is deliberately
-  a controlled simulation, not general contradiction detection.
-- Source authority precedes a confidence heuristic. Similarity/confidence are not truth
-  probabilities. Citation membership is checked; semantic support still needs review.
-- Simulated feedback adjusts per-source ranking weights in [0.8, 1.2]. It does not train
-  the LLM and cannot override source authority.
-- All knowledge updates, feedback and metrics are **in memory**. Restart resets to the
-  committed seed corpus. Answers retain source snapshots. History is bounded to 256 requests.
-- Use one API worker. A lock serializes queries and updates for consistent snapshots.
-  This sacrifices throughput for clarity. Notebook and API have independent state.
-- The UI shows only the latest response; every question is independent. No auth, file upload,
-  conversational memory, streaming, or public deployment is included.
-
-See [architecture and requirement mapping](docs/architecture.md), [validation](docs/validation.md),
-and [implementation plan](docs/plan.md). Start with the [Bulgarian code walkthrough](docs/code_walkthrough.bg.md)
-to follow a question through the classes. Development used incremental local Git commits;
-this new repository has not been published to GitHub.
-
-## References
-
-- [LLM Zoomcamp](https://datatalks.club/blog/llm-zoomcamp.html): grounded RAG, evaluation and monitoring.
-- [OpenAI structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs): strict response schemas.
-- [FastAPI](https://fastapi.tiangolo.com/features/): validation and OpenAPI documentation.
-- [FastEmbed](https://github.com/qdrant/fastembed): local ONNX embeddings.
+See the [code and concepts guide (Bulgarian)](docs/code_walkthrough.bg.md) for the
+execution flow, Python examples, evaluation limits and steps toward production.

@@ -14,7 +14,7 @@ def create_app(system=None) -> FastAPI:
         app.state.system = system or build_system()
         yield
 
-    app = FastAPI(title="Multi-agent RAG assessment", version="0.1.0", lifespan=lifespan)
+    app = FastAPI(title="Multi-agent RAG", version="0.1.0", lifespan=lifespan)
 
     @app.get("/health")
     def health(request: Request):

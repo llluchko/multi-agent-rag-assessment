@@ -9,7 +9,7 @@
   "rows": [
     {
       "id": "deployment",
-      "group": "assignment",
+      "group": "core",
       "routing_correct": true,
       "retrieval_recall_at_dynamic_k": 1.0,
       "expected_source_recall_in_answer": 1.0,
@@ -43,7 +43,7 @@
     },
     {
       "id": "performance",
-      "group": "assignment",
+      "group": "core",
       "routing_correct": true,
       "retrieval_recall_at_dynamic_k": 1.0,
       "expected_source_recall_in_answer": 1.0,
@@ -74,7 +74,7 @@
     },
     {
       "id": "workflow",
-      "group": "assignment",
+      "group": "core",
       "routing_correct": true,
       "retrieval_recall_at_dynamic_k": 1.0,
       "expected_source_recall_in_answer": 1.0,

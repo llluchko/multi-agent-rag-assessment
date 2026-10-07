@@ -27,7 +27,7 @@ SCENARIOS = [
 
 
 @pytest.mark.parametrize("query,domains,sources", SCENARIOS)
-def test_assignment_scenarios(system, query, domains, sources):
+def test_multi_domain_scenarios(system, query, domains, sources):
     a = system.query(query)
     assert {t.domain for t in a.plan.tasks} == domains
     assert a.status == "answered"
