@@ -106,7 +106,14 @@ class Orchestrator:
         cited = {s for c in draft.claims for s in c.source_ids}
         sources = {e.document.source_id: e for r in results for e in r.evidence}
         unresolved = any(c.selected_source_id is None for c in conflicts)
-        missing = any(not r.claims or r.error for r in results)
+        missing = any(
+            not r.claims
+            or r.error
+            or not cited.intersection(
+                source_id for claim in r.claims for source_id in claim.source_ids
+            )
+            for r in results
+        )
         if error or (results and all(r.error for r in results)):
             status = "failed"
         elif not draft.claims:

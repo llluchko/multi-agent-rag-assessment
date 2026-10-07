@@ -21,7 +21,11 @@ def create_app(system=None) -> FastAPI:
         s = request.app.state.system
         return {"status": "ready", "mode": s.llm.mode, "embedding_backend": s.store.embedder.name}
 
-    @app.post("/query", response_model=Answer)
+    @app.post(
+        "/query",
+        response_model=Answer,
+        responses={502: {"model": Answer, "description": "Model failure with trace"}},
+    )
     def query(body: Query, request: Request):
         # Business-level partial/no-evidence outcomes use 200 and explicit status.
         answer = request.app.state.system.query(body.text)

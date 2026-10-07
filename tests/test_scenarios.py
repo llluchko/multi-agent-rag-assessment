@@ -232,3 +232,45 @@ def test_live_model():
     a = system.query(SCENARIOS[0][0])
     assert a.status == "answered" and a.citations
     assert {"technical", "compliance"} == {t.domain for t in a.plan.tasks}
+
+
+def test_synthesis_cannot_silently_drop_a_domain(system):
+    original = system.llm.generate
+
+    def omit(stage, instructions, payload, schema):
+        result = original(stage, instructions, payload, schema)
+        if stage == "synthesis":
+            result.claims = [
+                c for c in result.claims if all(s.startswith("tech-") for s in c.source_ids)
+            ]
+        return result
+
+    system.llm.generate = omit
+    a = system.query(SCENARIOS[0][0])
+    assert a.status == "partial"
+
+
+def test_failed_provider_is_502_with_trace(system):
+    def failed(*args):
+        raise LLMError("planner: unavailable")
+
+    system.llm.generate = failed
+    with TestClient(create_app(system)) as client:
+        r = client.post("/query", json={"text": SCENARIOS[0][0]})
+        assert r.status_code == 502
+        assert r.json()["status"] == "failed"
+        assert r.json()["error"] == "planner: unavailable"
+
+
+def test_source_alias_cannot_mutate_index(system):
+    original = system.store.documents["tech-deploy"].model_copy(deep=True)
+    new = original.model_copy(update={"version": 2})
+    system.upsert(new)
+    new.text = "Changed outside the store"
+    assert system.store.documents[new.id].text == original.text
+
+
+def test_feedback_cannot_reduce_weight_below_bound(system):
+    for _ in range(12):
+        system.store.adjust_weight("tech-deploy@v1#0", False)
+    assert system.store.weights["tech-deploy@v1#0"] == 0.8

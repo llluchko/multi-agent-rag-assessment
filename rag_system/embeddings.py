@@ -21,11 +21,27 @@ class LocalEmbeddings:
 
     def __init__(self, cache_dir: str | Path):
         from fastembed import TextEmbedding
+        from huggingface_hub import snapshot_download
+
+        model_path = snapshot_download(
+            repo_id="qdrant/all-MiniLM-L6-v2-onnx",
+            revision="d13954661f83248295ba75c1ed411eef3b7b936e",
+            cache_dir=str(cache_dir),
+            allow_patterns=[
+                "model.onnx",
+                "config.json",
+                "tokenizer.json",
+                "tokenizer_config.json",
+                "special_tokens_map.json",
+            ],
+        )
 
         self.model = TextEmbedding(
             model_name="sentence-transformers/all-MiniLM-L6-v2",
             cache_dir=str(cache_dir),
             threads=2,
+            specific_model_path=model_path,
+            providers=["CPUExecutionProvider"],
         )
 
     def encode(self, texts: list[str]) -> np.ndarray:

@@ -15,7 +15,7 @@ Use complex for multiple domains or multi-step questions; explain routing briefl
 
 SIGNALS = {
     "technical": r"deploy|microservice|api|performance|latency|troubleshoot|rollback|capacity|scal|data processing|implement|pipeline|retention|logs",
-    "business": r"approv|budget|owner|business|spend|purchas|vendor|prioriti|procurement|cost|data processing",
+    "business": r"approv|budget|own(?:er|s)?|business|spend|purchas|vendor|prioriti|procurement|cost|data processing",
     "compliance": r"complian|secur|polic|privacy|personal data|encrypt|access|retention|logs|audit|data processing",
 }
 FOCUS = {
