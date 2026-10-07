@@ -1,30 +1,13 @@
 # Multi-agent RAG
 
-A small assistant for technical, business and compliance questions. It retrieves
-relevant documents, resolves annotated conflicts and returns answers with sources.
-Includes a Python core, Jupyter notebook, FastAPI service and optional React UI.
+A small assistant that answers technical, business and compliance questions using
+synthetic documents and citations. Includes a Jupyter notebook, FastAPI service
+and optional React chat UI.
 
-## Read the code
+## Run with Docker
 
-Start with one question in `notebooks/demo.ipynb`, then follow this path:
-
-1. [`bootstrap.py`](rag_system/bootstrap.py) — creates the store, LLM and agents.
-2. [`Orchestrator._query()`](rag_system/orchestrator.py) — the complete workflow:
-   plan → retrieve → resolve conflicts → generate → synthesize → respond.
-3. [`domain_agents.py`](rag_system/domain_agents.py) and
-   [`vector_store.py`](rag_system/vector_store.py) — context selection and cited claims.
-4. [`models.py`](rag_system/models.py) — messages shared through the orchestrator.
-5. [`utils.py`](rag_system/utils.py) — conflict policy and answer status rules.
-
-Three domain agents share one implementation, with domain-filtered knowledge.
-Calls are sequential in one process; JSON seeds an in-memory NumPy vector store.
-These choices keep the small corpus easy to inspect. API, notebook and optional UI
-use the same core.
-
-## Start with Docker
-
-Install and start **Docker Desktop**. Open a terminal in this project folder.
-On the first run, create your local configuration (keep an existing `.env`):
+Start Docker Desktop, then run from the project folder. Create `.env` only if you
+don't already have one:
 
 ```sh
 cp .env.example .env
@@ -32,119 +15,74 @@ docker compose --profile ui up --build -d
 ```
 
 - **Chat:** http://localhost:5173
-- **API / Swagger:** http://localhost:8000/docs
-- **Notebook:** run `docker compose logs notebook` and open the
-  `http://127.0.0.1:8888/lab?token=...` link, including the token.
-  Open `notebooks/demo.ipynb` → **Kernel → Restart Kernel and Run All Cells**.
-  If Jupyter asks for a password, paste the token from that link.
+- **API / Swagger:** http://localhost:8000/docs — try `POST /query`.
+- **Notebook:** run `docker compose logs notebook`, open the
+  `http://127.0.0.1:8888/lab?token=...` link and select `notebooks/demo.ipynb`.
+  Choose **Kernel → Restart Kernel and Run All Cells**. If asked for a password,
+  use the token from the logs.
 
-The first run downloads the images and embedding model. Later runs reuse the cache.
-For API and notebook only, omit `--profile ui`. After changing code, rerun the start
-command to rebuild. To stop everything: `docker compose --profile ui down`.
+Try: “What business approvals are needed for a new data processing workflow?”
 
-## Choose the LLM
+The first start downloads dependencies and the embedding model. Omit `--profile ui`
+if you only need the API and notebook. Rerun the start command after code changes.
+Stop with `docker compose --profile ui down`.
 
-Set one value in `.env`; API and notebook use the same setting:
+## Choose mock or Ollama
 
-```dotenv
-LLM_PROVIDER=mock
-```
+Set `LLM_PROVIDER` in `.env`:
 
-Use `mock` for deterministic answers without an LLM server, or `ollama` for real
-local Qwen3 4B generation. Both use real local MiniLM embeddings by default.
-No API key is needed. Ollama failures are reported; there is no automatic mock fallback.
+| Value | Answers |
+| --- | --- |
+| `mock` (default) | Rule-based responses; no LLM server needed. |
+| `ollama` | Real local generation with `qwen3:4b`. |
 
-Native Python reads `.env` automatically. After changing it, restart the notebook
-kernel and run all cells. With Docker, first run `docker compose up -d api notebook`
-to apply the setting to both containers. No notebook code changes are needed.
+Both use local MiniLM embeddings for vector search. No API key is required.
 
-### Start Ollama (only for `LLM_PROVIDER=ollama`)
-
-Install [Ollama](https://ollama.com/download) on the host and start it (`ollama serve`
-in another terminal if the app is not running). Download the model once:
+For Ollama, install and start [Ollama](https://ollama.com/download) on your machine
+(use `ollama serve` if the app isn't running), then download the model:
 
 ```sh
 ollama pull qwen3:4b
 ```
 
-Check that Ollama is running by opening [the local model list](http://localhost:11434/api/tags)
-in your browser, or running `curl http://localhost:11434/api/tags`. The JSON should
-include `qwen3:4b`. If the connection fails, start Ollama; if the model is missing,
-run the pull command above. Keep the `ollama serve` terminal open during the demo.
-
-<details>
-<summary>Reuse an existing cached Ollama installation on macOS</summary>
-
-If you already have the runtime and model in
-`~/Desktop/multi-agent-rag/.cache/ollama`, start them directly without reinstalling
-or downloading the model again:
+Set `LLM_PROVIDER=ollama` in `.env`, then apply the configuration:
 
 ```sh
-OLLAMA_MODELS="$HOME/Desktop/multi-agent-rag/.cache/ollama/models" \
-OLLAMA_HOST=127.0.0.1:11434 \
-"$HOME/Desktop/multi-agent-rag/.cache/ollama/bin/ollama" serve
+docker compose up -d api notebook
 ```
 
-Adjust the paths if your cache is elsewhere. This optional shortcut is specific to
-an existing local installation; a fresh checkout uses the standard setup above.
-Skip this command if Ollama is already running on port 11434.
+Restart the notebook kernel and run all cells. Keep Ollama running; a full notebook
+run can take several minutes. Compose connects to `host.docker.internal:11434`.
+On Linux, Ollama must listen on an address reachable from Docker. Use `OLLAMA_URL`
+or `OLLAMA_MODEL` in `.env` only to override the defaults.
 
-</details>
+## Tests
 
-Ollama runs on the host; the API and notebook can stay in Docker. The address is
-selected automatically: native Python uses `localhost:11434`, while Compose uses
-`host.docker.internal:11434`. Set `OLLAMA_URL` only for a custom server and
-`OLLAMA_MODEL` only to override `qwen3:4b`. On Linux, the Ollama listener must be
-reachable from the Docker gateway; otherwise use native Python.
-
-The notebook's final cell checks the three answers already generated with Ollama.
-In mock mode, it explicitly skips the real-model assertions. Feedback and failure
-experiments, plus the 24-case diagnostic baseline, always use mock and are labelled.
-
-[Qwen3 4B](https://ollama.com/library/qwen3:4b) has an Apache 2.0 license and a roughly
-2.5 GB download. Inference uses your computer, with no per-request API fee.
-A full notebook run takes several minutes with Ollama. Valid citations do not prove
-that every generated statement is relevant or complete.
-
-## Development without Docker
-
-Use Python 3.13. On macOS/Linux:
+With the containers running:
 
 ```sh
-python3.13 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt -c constraints.txt
-python -m uvicorn rag_system.api:app --host 127.0.0.1 --port 8000
-```
-
-On Windows, activate with `.venv\Scripts\Activate.ps1`. The same `.env` is loaded
-automatically. Explicit environment variables take precedence over the file.
-Run `python -m jupyterlab` for the notebook. For React, use Node 22.12+ and run
-`npm ci` then `npm run dev` inside `frontend`.
-
-## Checks
-
-```sh
+# Fast tests with test doubles
 docker compose exec api python -m pytest -q
+
+# Include real MiniLM embeddings
 docker compose exec -e RUN_SEMANTIC=1 api python -m pytest -q
-docker compose exec api python -m scripts.evaluate
-```
 
-The first suite uses test doubles; the second includes MiniLM. To run the three
-real Ollama scenarios separately from the notebook:
-
-```sh
+# Real generation — requires Ollama and the model above
 docker compose exec -e RUN_LIVE_LLM=1 api python -m pytest -m live -v
 ```
 
-`RUN_LIVE_LLM` only opts into pytest's slower integration tests; it does not configure
-the application or notebook. Native equivalents use the same
-`python -m ...` commands. Run `python -m ruff check .` and
-`python -m ruff format --check .` for Python style; `npm run build` checks React.
+## Code overview
 
-## Scope
+[`bootstrap.py`](rag_system/bootstrap.py) builds the shared core.
+[`Orchestrator._query()`](rag_system/orchestrator.py) coordinates the flow:
 
-The corpus contains 18 short synthetic English documents. Documents, vectors,
-feedback and metrics live in memory; restarting resets them. Notebook and API have
-independent state. Use one API worker. This local application has no authentication
-or conversational memory. Generated answers still need review against their sources.
+**Question → plan → retrieve documents → resolve conflicts → domain answers → final answer with citations.**
+
+[`domain_agents.py`](rag_system/domain_agents.py) handles the three domains,
+[`vector_store.py`](rag_system/vector_store.py) handles retrieval, and
+[`models.py`](rag_system/models.py) defines the data passed between components.
+
+The corpus lives in `data/knowledge.json`. Documents, vectors, feedback and metrics
+are held in memory and reset on restart. API and notebook have separate state.
+Agents run sequentially; use one API worker. This local demo has no authentication
+or conversation memory.
