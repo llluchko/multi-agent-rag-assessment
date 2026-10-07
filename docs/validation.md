@@ -13,11 +13,19 @@ is cached locally and pinned to revision `d13954661f83248295ba75c1ed411eef3b7b93
 | Notebook from a fresh kernel | **All 10 code cells passed**, mock LLM + actual MiniLM |
 | Ruff lint and format | Passed |
 | React TypeScript check and Vite build | Passed |
-| Browser end-to-end check | Example button → query → API response → expandable citations |
+| Browser end-to-end check | Simplified question form → Docker API → visible answer and source/agent controls |
 | Native API | Started on localhost; health, OpenAPI and query response verified |
 | Compose file | Parsed as YAML; services and optional UI profile checked |
-| Docker image/build/runtime | **Not executed**; Docker is not installed on this host |
+| Docker image/build/runtime | Docker Desktop: images built, API healthy, notebook and UI started |
+| Tests inside Docker before the orchestration refactor | **27 passed, 1 skipped**, actual MiniLM with offline model cache |
+| Notebook inside Docker before the orchestration refactor | **All 10 code cells passed** from a fresh kernel; saved user outputs left unchanged |
 | OpenAI provider contract | HTTP request/response tests with mock transport; **no real model call** |
+
+After extracting named orchestration steps, the native suite again passed **27 tests**
+(one live test skipped), all **10 notebook code cells** passed from a fresh kernel,
+and Ruff plus the TypeScript/Vite build passed. Notebook validation did not overwrite
+the user's saved outputs. Docker runtime checks above precede the Python refactor;
+rebuild containers to load the updated source.
 
 The test suite emits a Starlette deprecation notice for its httpx test client; tests
 still pass. Notebook kernel transport emitted a local TCP warning from Jupyter.
@@ -67,7 +75,7 @@ metrics. A valid source ID and an HTTP 200 response do not establish answer corr
 
 ## Remaining verification before interview submission
 
-- Run Docker from a clean checkout on the intended demo machine.
+- Repeat Docker startup on a clean checkout if the submission machine differs from this host.
 - Run the real LLM mode with an available API key and review answer quality using the rubric.
 - Complete the separate Systems Design task if submitting the full assignment.
 - Publish this local repository to GitHub when ready; it has no configured remote.

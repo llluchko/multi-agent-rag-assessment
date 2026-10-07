@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from .domain_agents import DomainAgent, validate_claims
 from .llm import LLMError
-from .models import DOMAINS, Answer, Draft, Feedback, Query
+from .models import DOMAINS, AgentResult, Answer, Conflict, Draft, Feedback, Plan, Query
 from .query_classifier import QueryClassifier
 from .utils import render, resolve_conflict
 
@@ -33,10 +33,12 @@ class Orchestrator:
 
     def query(self, text: str) -> Answer:
         query = Query(text=text)
+        # Keep a query and its evidence consistent while feedback/documents may change.
         with self.lock:
             return self._query(query.text)
 
     def _query(self, text: str) -> Answer:
+        """Plan → retrieve → resolve → generate → synthesize → respond → record."""
         started = perf_counter()
         before = (self.llm.calls, self.llm.input_tokens, self.llm.output_tokens)
         plan, results, conflicts, timings = None, [], [], {}
@@ -45,64 +47,90 @@ class Orchestrator:
             step = perf_counter()
             plan = self.classifier.classify(text)
             timings["planning"] = (perf_counter() - step) * 1000
+
             step = perf_counter()
-            for task in plan.tasks:
-                results.append(self.agents[task.domain].retrieve(task, plan.complexity))
+            results = self._retrieve(plan)
             timings["retrieval"] = (perf_counter() - step) * 1000
+
             step = perf_counter()
-            approved = {}
-            for result in results:
-                for hit in result.retrieved:
-                    fact = hit.document.fact
-                    if fact not in approved:
-                        approved[fact], conflict = resolve_conflict(
-                            self.store.peers(hit.document, text)
-                        )
-                        if conflict:
-                            conflicts.append(conflict)
-            for result in results:
-                # A peer policy may come from another KB; the trace retains its true domain.
-                selected = {
-                    e.document.source_id: e
-                    for hit in result.retrieved
-                    for e in approved[hit.document.fact]
-                }
-                result.evidence = list(selected.values())
+            conflicts = self._resolve_conflicts(results, text)
             timings["conflicts"] = (perf_counter() - step) * 1000
+
             step = perf_counter()
-            for result in results:
-                self.agents[result.task.domain].answer(result, text)
+            self._generate(results, text)
             timings["agents"] = (perf_counter() - step) * 1000
-            evidence = {
-                e.document.source_id: e
-                for r in results
-                for e in r.evidence
-                if any(e.document.source_id in c.source_ids for c in r.claims)
-            }
+
             step = perf_counter()
-            if evidence:
-                draft = self.llm.generate(
-                    "synthesis",
-                    SYNTHESIS_PROMPT,
-                    {
-                        "query": text,
-                        "results": [
-                            {"domain": r.task.domain, "claims": [c.model_dump() for c in r.claims]}
-                            for r in results
-                            if r.claims
-                        ],
-                        "sources": [
-                            {"source_id": k, "text": e.document.text} for k, e in evidence.items()
-                        ],
-                    },
-                    Draft,
-                )
-                validate_claims(draft, list(evidence.values()))
+            draft = self._synthesize(results, text)
             timings["synthesis"] = (perf_counter() - step) * 1000
         except LLMError as exc:
-            # Domain results remain visible for diagnosis, but failed synthesis isn't labelled success.
+            # Keep the trace, but never present failed synthesis as a successful answer.
             error = str(exc)
             draft = Draft(claims=[])
+        answer = self._response(plan, results, conflicts, draft, error, timings, started, before)
+        self._record(answer)
+        return answer
+
+    def _retrieve(self, plan: Plan) -> list[AgentResult]:
+        """Each selected agent searches its own domain with a dynamic retrieval budget."""
+        return [self.agents[task.domain].retrieve(task, plan.complexity) for task in plan.tasks]
+
+    def _resolve_conflicts(self, results: list[AgentResult], text: str) -> list[Conflict]:
+        """Preserve raw retrieval; replace each agent's evidence with approved sources."""
+        approved, conflicts = {}, []
+        for result in results:
+            for hit in result.retrieved:
+                fact = hit.document.fact
+                if fact not in approved:
+                    approved[fact], conflict = resolve_conflict(
+                        self.store.peers(hit.document, text)
+                    )
+                    if conflict:
+                        conflicts.append(conflict)
+        for result in results:
+            # A peer policy may come from another KB; retain its true source domain.
+            selected = {
+                e.document.source_id: e
+                for hit in result.retrieved
+                for e in approved[hit.document.fact]
+            }
+            result.evidence = list(selected.values())
+        return conflicts
+
+    def _generate(self, results: list[AgentResult], text: str) -> None:
+        """Agents add cited claims or an explicit error to their own result."""
+        for result in results:
+            self.agents[result.task.domain].answer(result, text)
+
+    def _synthesize(self, results: list[AgentResult], text: str) -> Draft:
+        """Combine validated domain claims using only the sources they actually cite."""
+        evidence = {
+            e.document.source_id: e
+            for result in results
+            for e in result.evidence
+            if any(e.document.source_id in claim.source_ids for claim in result.claims)
+        }
+        if not evidence:
+            return Draft(claims=[])
+        draft = self.llm.generate(
+            "synthesis",
+            SYNTHESIS_PROMPT,
+            {
+                "query": text,
+                "results": [
+                    {"domain": r.task.domain, "claims": [c.model_dump() for c in r.claims]}
+                    for r in results
+                    if r.claims
+                ],
+                "sources": [{"source_id": k, "text": e.document.text} for k, e in evidence.items()],
+            },
+            Draft,
+        )
+        validate_claims(draft, list(evidence.values()))
+        return draft
+
+    def _response(self, plan, results, conflicts, draft, error, timings, started, before) -> Answer:
+        """Derive completeness in code and attach the evidence and execution trace."""
         cited = {s for c in draft.claims for s in c.source_ids}
         sources = {e.document.source_id: e for r in results for e in r.evidence}
         unresolved = any(c.selected_source_id is None for c in conflicts)
@@ -138,7 +166,7 @@ class Orchestrator:
                 "\n\nThis is a partial answer; consult the domain results for missing evidence."
             )
         timings["total"] = (perf_counter() - started) * 1000
-        answer = Answer(
+        return Answer(
             request_id=str(uuid4()),
             mode=self.llm.mode,
             embedding_backend=self.store.embedder.name,
@@ -154,13 +182,15 @@ class Orchestrator:
             output_tokens=self.llm.output_tokens - before[2],
             error=error,
         )
+
+    def _record(self, answer: Answer) -> None:
+        """Keep counters and a bounded snapshot history for metrics and feedback."""
         self.total_queries += 1
-        self.outcomes[status] += 1
+        self.outcomes[answer.status] += 1
         self.history[answer.request_id] = answer.model_copy(deep=True)
         if len(self.history) > 256:
             old, _ = self.history.popitem(last=False)
             self.feedback = {key: value for key, value in self.feedback.items() if key[0] != old}
-        return answer
 
     def submit_feedback(self, feedback: Feedback) -> float:
         """Rate a cited current version once per request; reject stale/unrelated citations."""

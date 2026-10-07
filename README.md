@@ -28,9 +28,9 @@ or GPU is required. Initial image builds and the roughly 90 MB embedding downloa
 internet. A named volume caches the model. Later cached runs can use `HF_HUB_OFFLINE=1`
 when running natively. The two Python services share the model cache, not application state.
 
-Docker files are supplied but **have not been executed on the development host**, which
-has no Docker installation. Native startup, semantic retrieval, API, notebook and UI
-were tested. See [validation](docs/validation.md) for exact evidence and limits.
+Docker images were built and the API, notebook and optional UI were started with Docker
+Desktop. The semantic test suite and all ten notebook cells also passed inside containers.
+See [validation](docs/validation.md) for exact evidence and limits.
 
 ## Native setup
 
@@ -64,7 +64,7 @@ npm run dev
 
 Open <http://localhost:5173>. The dev server proxies `/api` to port 8000, so there is no
 browser API key or permissive CORS configuration. `npm run build` type-checks and builds
-static assets. The Docker UI uses Vite preview, intended only for this local demo.
+static assets. The Docker UI uses a local Vite server, intended only for this demo.
 
 ## Real LLM mode
 
@@ -171,7 +171,8 @@ correctness. The cases are development examples, not an independent holdout. Use
   conversational memory, streaming, or public deployment is included.
 
 See [architecture and requirement mapping](docs/architecture.md), [validation](docs/validation.md),
-and [implementation plan](docs/plan.md). Development used incremental local Git commits;
+and [implementation plan](docs/plan.md). Start with the [Bulgarian code walkthrough](docs/code_walkthrough.bg.md)
+to follow a question through the classes. Development used incremental local Git commits;
 this new repository has not been published to GitHub.
 
 ## References

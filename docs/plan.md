@@ -21,5 +21,8 @@ References:
 - https://datatalks.club/blog/llm-zoomcamp.html
 - https://developers.openai.com/api/docs/guides/structured-outputs
 
-Initial implementation completed on 7 October 2026. Docker execution and real-provider
-validation remain unverified; see validation.md for the exact checks performed.
+Initial implementation completed on 7 October 2026. Docker execution is verified;
+real-provider validation remains unverified. See validation.md for the exact checks performed.
+
+Continue development only in this repository. Keep the main orchestration flow readable
+through named steps; retain the small NumPy store, API/mock modes and minimal React UI.
