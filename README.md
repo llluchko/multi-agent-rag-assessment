@@ -75,6 +75,8 @@ docker compose exec -e RUN_LIVE_LLM=1 api python -m pytest -m live -v
 
 ## Code overview
 
+See [Architecture](docs/architecture.md) for the components, data flow and design choices.
+
 [`bootstrap.py`](rag_system/bootstrap.py) builds the shared core.
 [`Orchestrator._query()`](rag_system/orchestrator.py) coordinates the flow:
 
