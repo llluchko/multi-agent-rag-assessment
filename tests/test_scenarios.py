@@ -230,7 +230,12 @@ def test_live_model():
         pytest.skip("Explicit RUN_LIVE_LLM=1 and API key required; incurs provider usage")
     system = build_system("live", "fastembed")
     a = system.query(SCENARIOS[0][0])
-    assert a.status == "answered" and a.citations
+    assert a.status == "answered", {
+        "status": a.status,
+        "error": a.error,
+        "domain_errors": {r.task.domain: r.error for r in a.results if r.error},
+    }
+    assert a.citations
     assert {"technical", "compliance"} == {t.domain for t in a.plan.tasks}
 
 

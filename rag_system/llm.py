@@ -15,6 +15,31 @@ class LLMError(RuntimeError):
     """Safe public failure; provider payloads and credentials are never included."""
 
 
+def quota_error(response: httpx.Response) -> str | None:
+    """Billing failures need account action, not an immediate retry."""
+    if response.status_code != 429:
+        return None
+    try:
+        data = response.json()
+    except ValueError:
+        return None
+    error = data.get("error") if isinstance(data, dict) else None
+    if not isinstance(error, dict):
+        return None
+    code = error.get("code")
+    if code == "credit_balance_exhausted":
+        return "OpenAI API credit balance exhausted. Add credits in API billing settings."
+    limits = (
+        "insufficient_quota",
+        "organization_spend_limit_exceeded",
+        "project_spend_limit_exceeded",
+        "organization_usage_limit_exceeded",
+    )
+    if code in limits or error.get("type") == "insufficient_quota":
+        return "OpenAI API quota exhausted. Check API billing and spending limits."
+    return None
+
+
 class MockLLM:
     """Extractive simulation exercises real retrieval and coordination without an API key."""
 
@@ -87,6 +112,9 @@ class OpenAILLM:
                         json=body,
                         headers={"Authorization": f"Bearer {self._api_key}"},
                     )
+                    quota = quota_error(response)
+                    if quota:
+                        raise LLMError(f"{stage}: {quota}")
                     if attempt == 0 and (
                         response.status_code == 429 or response.status_code >= 500
                     ):
@@ -110,5 +138,9 @@ class OpenAILLM:
                 raise LLMError(f"{stage}: model refused the request")
             output = "".join(p["text"] for p in content if p.get("type") == "output_text")
             return schema.model_validate_json(output)
-        except (httpx.HTTPError, ValidationError, ValueError, KeyError, TypeError) as exc:
+        except httpx.HTTPStatusError as exc:
+            raise LLMError(
+                f"{stage}: OpenAI API request failed (HTTP {exc.response.status_code})."
+            ) from exc
+        except (httpx.RequestError, ValidationError, ValueError, KeyError, TypeError) as exc:
             raise LLMError(f"{stage}: provider unavailable or invalid structured response") from exc

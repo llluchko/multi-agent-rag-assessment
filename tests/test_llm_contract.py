@@ -61,3 +61,55 @@ def test_no_implicit_mock_fallback(monkeypatch):
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     with pytest.raises(ValueError, match="requires OPENAI_API_KEY"):
         OpenAILLM()
+
+
+@pytest.mark.parametrize(
+    "code",
+    [
+        "credit_balance_exhausted",
+        "insufficient_quota",
+        "organization_spend_limit_exceeded",
+        "project_spend_limit_exceeded",
+        "organization_usage_limit_exceeded",
+    ],
+)
+def test_quota_errors_are_actionable_and_not_retried(code):
+    error = {"code": code, "message": "Do not expose private-test-value or provider payloads"}
+    llm = OpenAILLM(
+        api_key="private-test-value",
+        transport=httpx.MockTransport(lambda request: httpx.Response(429, json={"error": error})),
+    )
+    with pytest.raises(LLMError, match="billing") as caught:
+        llm.generate("plan", "instructions", {}, Draft)
+    assert llm.calls == 1
+    assert "private-test-value" not in str(caught.value)
+
+
+def test_transient_rate_limit_still_retries():
+    calls = 0
+
+    def handler(request):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return httpx.Response(429, json={"error": {"code": "rate_limit_exceeded"}})
+        return httpx.Response(
+            200, json=response([{"type": "output_text", "text": '{"claims":[]}'}])
+        )
+
+    llm = OpenAILLM(api_key="test-only", transport=httpx.MockTransport(handler))
+    assert llm.generate("domain", "instructions", {}, Draft).claims == []
+    assert llm.calls == 2
+
+
+def test_http_error_preserves_status_without_raw_provider_message():
+    llm = OpenAILLM(
+        api_key="private-test-value",
+        transport=httpx.MockTransport(
+            lambda request: httpx.Response(401, json={"error": {"message": "private-test-value"}})
+        ),
+    )
+    with pytest.raises(LLMError, match="HTTP 401") as caught:
+        llm.generate("plan", "instructions", {}, Draft)
+    assert "private-test-value" not in str(caught.value)
+    assert llm.calls == 1
