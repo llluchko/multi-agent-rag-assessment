@@ -1,0 +1,200 @@
+[
+  {
+    "id": "tech-deploy",
+    "domain": "technical",
+    "title": "Deploying a microservice",
+    "text": "To deploy a microservice, run unit and integration tests, build a versioned container image, deploy to staging, then use a canary rollout with a rollback plan.",
+    "fact_key": "deployment",
+    "scope": "production",
+    "value": "test-stage-canary",
+    "authority": 0.9,
+    "version": 1
+  },
+  {
+    "id": "tech-performance",
+    "domain": "technical",
+    "title": "Troubleshooting API performance",
+    "text": "To troubleshoot API performance issues, inspect p95 latency, error rates and traces. Profile slow endpoints and database queries before changing capacity.",
+    "fact_key": "performance",
+    "scope": "api",
+    "value": "measure-profile",
+    "authority": 0.9,
+    "version": 1
+  },
+  {
+    "id": "tech-pipeline",
+    "domain": "technical",
+    "title": "Data processing workflow implementation",
+    "text": "Implement a data processing workflow with schema validation, idempotent processing, retries and a dead-letter queue. Test it in staging before release.",
+    "fact_key": "implementation",
+    "scope": "data-workflow",
+    "value": "validate-idempotent",
+    "authority": 0.9,
+    "version": 1
+  },
+  {
+    "id": "tech-rollback",
+    "domain": "technical",
+    "title": "Rollback procedure",
+    "text": "Roll back a failed deployment to the previous image version. Verify health checks and error rates before resuming traffic.",
+    "fact_key": "rollback",
+    "scope": "production",
+    "value": "previous-image",
+    "authority": 0.9,
+    "version": 1
+  },
+  {
+    "id": "tech-logs",
+    "domain": "technical",
+    "title": "Engineering log retention note",
+    "text": "An informal engineering note recommends retaining production API request logs for 90 days for troubleshooting.",
+    "fact_key": "retention-days",
+    "scope": "production-api-request-logs",
+    "value": "90",
+    "authority": 0.5,
+    "version": 1
+  },
+  {
+    "id": "tech-capacity",
+    "domain": "technical",
+    "title": "Capacity changes",
+    "text": "Use load tests and CPU and memory measurements to decide whether API capacity needs scaling. Define a rollback threshold before changes.",
+    "fact_key": "capacity",
+    "scope": "api",
+    "value": "load-test-first",
+    "authority": 0.9,
+    "version": 1
+  },
+  {
+    "id": "biz-approvals",
+    "domain": "business",
+    "title": "Data workflow approvals",
+    "text": "A new data processing workflow requires approval from the business owner and data owner before implementation. Record both approvals in the change ticket.",
+    "fact_key": "approvals",
+    "scope": "data-workflow",
+    "value": "business-and-data-owner",
+    "authority": 0.9,
+    "version": 1
+  },
+  {
+    "id": "biz-budget",
+    "domain": "business",
+    "title": "Budget approval",
+    "text": "A workflow with new infrastructure spending requires budget approval from the cost centre owner before purchasing capacity.",
+    "fact_key": "budget",
+    "scope": "new-spend",
+    "value": "cost-centre-owner",
+    "authority": 0.9,
+    "version": 1
+  },
+  {
+    "id": "biz-release",
+    "domain": "business",
+    "title": "Production change approval",
+    "text": "A production release requires the service owner to approve the change ticket and rollout window. Emergency releases use the incident commander approval path.",
+    "fact_key": "approval",
+    "scope": "production-release",
+    "value": "service-owner",
+    "authority": 0.9,
+    "version": 1
+  },
+  {
+    "id": "biz-owner",
+    "domain": "business",
+    "title": "Service ownership",
+    "text": "Every microservice must have a named service owner and an on-call team in the service catalogue. The owner is accountable for business impact.",
+    "fact_key": "ownership",
+    "scope": "microservice",
+    "value": "owner-and-oncall",
+    "authority": 0.9,
+    "version": 1
+  },
+  {
+    "id": "biz-priority",
+    "domain": "business",
+    "title": "Prioritizing requests",
+    "text": "Prioritize workflow requests by customer impact, expected benefit and delivery effort. The product owner records the prioritization decision.",
+    "fact_key": "prioritization",
+    "scope": "workflow",
+    "value": "product-owner",
+    "authority": 0.85,
+    "version": 1
+  },
+  {
+    "id": "biz-vendor",
+    "domain": "business",
+    "title": "Vendor procurement",
+    "text": "A new vendor requires procurement review and a contract approved by the budget owner. This business review is separate from security review.",
+    "fact_key": "procurement",
+    "scope": "vendor",
+    "value": "procurement-budget",
+    "authority": 0.9,
+    "version": 1
+  },
+  {
+    "id": "comp-deploy",
+    "domain": "compliance",
+    "title": "Deployment compliance checks",
+    "text": "Before deploying a microservice, complete dependency vulnerability scanning, secrets scanning and a security review. Store the compliance checks in the release ticket.",
+    "fact_key": "security-checks",
+    "scope": "microservice-deployment",
+    "value": "scan-and-review",
+    "authority": 1,
+    "version": 1
+  },
+  {
+    "id": "comp-debug",
+    "domain": "compliance",
+    "title": "Secure API troubleshooting",
+    "text": "When troubleshooting API performance, redact personal data and credentials from logs, use least-privilege access and never disable production audit logging.",
+    "fact_key": "security",
+    "scope": "api-debugging",
+    "value": "redact-least-privilege-audit",
+    "authority": 1,
+    "version": 1
+  },
+  {
+    "id": "comp-data",
+    "domain": "compliance",
+    "title": "Data processing security review",
+    "text": "Before a data processing workflow goes live, classify the data, perform a privacy impact assessment for personal data and obtain security approval.",
+    "fact_key": "security-review",
+    "scope": "data-workflow",
+    "value": "classify-privacy-security",
+    "authority": 1,
+    "version": 1
+  },
+  {
+    "id": "comp-retention",
+    "domain": "compliance",
+    "title": "Production API log retention policy",
+    "text": "Production API request logs must be deleted after 30 days under the current approved retention policy. This policy takes precedence over informal engineering notes.",
+    "fact_key": "retention-days",
+    "scope": "production-api-request-logs",
+    "value": "30",
+    "authority": 1,
+    "version": 1
+  },
+  {
+    "id": "comp-access",
+    "domain": "compliance",
+    "title": "Access control policy",
+    "text": "Production access requires least-privilege permissions, multifactor authentication and an auditable approval. Review access quarterly.",
+    "fact_key": "access",
+    "scope": "production",
+    "value": "least-privilege-mfa",
+    "authority": 1,
+    "version": 1
+  },
+  {
+    "id": "comp-encryption",
+    "domain": "compliance",
+    "title": "Encryption policy",
+    "text": "Encrypt personal data in transit and at rest. Store encryption keys in the approved secrets manager and rotate keys according to the security runbook.",
+    "fact_key": "encryption",
+    "scope": "personal-data",
+    "value": "transit-and-rest",
+    "authority": 1,
+    "version": 1
+  }
+]
