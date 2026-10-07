@@ -68,6 +68,30 @@ in another terminal if the app is not running). Download the model once:
 ollama pull qwen3:4b
 ```
 
+Check that Ollama is running by opening [the local model list](http://localhost:11434/api/tags)
+in your browser, or running `curl http://localhost:11434/api/tags`. The JSON should
+include `qwen3:4b`. If the connection fails, start Ollama; if the model is missing,
+run the pull command above. Keep the `ollama serve` terminal open during the demo.
+
+<details>
+<summary>Reuse an existing cached Ollama installation on macOS</summary>
+
+If you already have the runtime and model in
+`~/Desktop/multi-agent-rag/.cache/ollama`, start them directly without reinstalling
+or downloading the model again:
+
+```sh
+OLLAMA_MODELS="$HOME/Desktop/multi-agent-rag/.cache/ollama/models" \
+OLLAMA_HOST=127.0.0.1:11434 \
+"$HOME/Desktop/multi-agent-rag/.cache/ollama/bin/ollama" serve
+```
+
+Adjust the paths if your cache is elsewhere. This optional shortcut is specific to
+an existing local installation; a fresh checkout uses the standard setup above.
+Skip this command if Ollama is already running on port 11434.
+
+</details>
+
 For Docker Desktop, set these values in `.env` (no API key needed):
 
 ```dotenv
