@@ -7,3 +7,5 @@ __pycache__
 .ruff_cache
 **/node_modules
 **/dist
+docs/code_walkthrough.bg.md
+LOCAL_REQUIREMENTS_REVIEW.md

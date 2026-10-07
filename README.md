@@ -19,7 +19,7 @@ Start with one question in `notebooks/demo.ipynb`, then follow this path:
 Three domain agents share one implementation, with domain-filtered knowledge.
 Calls are sequential in one process; JSON seeds an in-memory NumPy vector store.
 These choices keep the small corpus easy to inspect. API, notebook and optional UI
-use the same core. The [code guide](docs/code_walkthrough.bg.md) includes a 30-minute tour.
+use the same core.
 
 ## Start with Docker
 
@@ -148,6 +148,3 @@ The corpus contains 18 short synthetic English documents. Documents, vectors,
 feedback and metrics live in memory; restarting resets them. Notebook and API have
 independent state. Use one API worker. This local application has no authentication
 or conversational memory. Generated answers still need review against their sources.
-
-See the [code and concepts guide (Bulgarian)](docs/code_walkthrough.bg.md) for the
-execution flow, Python examples, evaluation limits and steps toward production.
