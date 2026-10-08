@@ -12,25 +12,34 @@ connection and are omitted here. HTTP calls are explicitly labelled.
 
 ```mermaid
 flowchart TB
-    UI["React chat UI — browser"]
+    UI["React chat UI<br/>Browser"]
 
-    subgraph API_PROCESS["API process — api container"]
-        API["FastAPI — HTTP endpoints"]
-        API_CORE["Python core — Orchestrator and dependencies"]
-        API -->|"Calls query in Python"| API_CORE
+    subgraph API_PROCESS["API container"]
+        API["FastAPI<br/>Query endpoint"]
+        API_CORE["Python core<br/>Orchestrator + agents<br/>Local embeddings + in-memory store"]
+        API -->|"Python call"| API_CORE
     end
 
-    subgraph NOTEBOOK_PROCESS["Notebook kernel — notebook container"]
-        CELLS["Demo notebook cells"]
-        NB_CORE["Python core — separate instance and state"]
-        CELLS -->|"Calls query in Python"| NB_CORE
+    subgraph NOTEBOOK_PROCESS["Notebook kernel: VS Code venv or container"]
+        CELLS["Demo notebook<br/>Python cells"]
+        NB_CORE["Python core<br/>Same code, separate state<br/>Local embeddings + in-memory store"]
+        CELLS -->|"Python call"| NB_CORE
     end
 
-    OLLAMA["Ollama server — host machine, runs Qwen3"]
+    OLLAMA["Ollama server<br/>Host machine<br/>Runs the generation model"]
 
-    UI -->|"HTTP POST /api/query via Vite proxy to /query"| API
-    API_CORE -->|"Ollama mode only: HTTP POST /api/chat"| OLLAMA
-    NB_CORE -->|"Ollama mode only: HTTP POST /api/chat"| OLLAMA
+    UI -->|"HTTP /query via UI proxy"| API
+    API_CORE -->|"Live only: POST /api/chat"| OLLAMA
+    NB_CORE -->|"Live only: POST /api/chat"| OLLAMA
+
+    classDef interface fill:#eff6ff,stroke:#2563eb,color:#172554,stroke-width:2px
+    classDef core fill:#f8fafc,stroke:#64748b,color:#0f172a,stroke-width:1.5px
+    classDef model fill:#f5f3ff,stroke:#7c3aed,color:#2e1065,stroke-width:2px
+    class UI,CELLS interface
+    class API,API_CORE,NB_CORE core
+    class OLLAMA model
+    style API_PROCESS fill:#f8fafc,stroke:#94a3b8,color:#0f172a
+    style NOTEBOOK_PROCESS fill:#f8fafc,stroke:#94a3b8,color:#0f172a
 ```
 
 - **Interfaces:** React calls FastAPI. The main notebook examples call Python
@@ -47,57 +56,74 @@ flowchart TB
 adapter, and supplies them to the orchestrator. Each document is one short passage;
 the store is in memory, not a separate database service.
 
-## 2. Interaction view: one question inside the Python core
+## 2. Interaction view: every LLM call from question to answer
 
-This expands either **Python core** box above. All participants below are Python
-objects in one process. Solid arrows are method calls; dashed arrows are returned
-values. Only the Ollama adapter makes an external HTTP call, as shown above.
+Example question: **“How do I deploy a microservice securely?”** The diagram assumes
+that the planner selects technical and compliance, both agents produce supported
+claims, and all calls succeed. This path makes **four LLM calls**.
+
+`LLM client` means `MockLLM` or `OllamaLLM`. In live mode, each numbered call sends
+an HTTP request to Ollama and validates the returned JSON as a Pydantic object.
+In mock mode, Python rules create those objects directly.
 
 ```mermaid
 sequenceDiagram
+    actor U as User
     participant O as Orchestrator
     participant P as QueryClassifier
-    participant A as DomainAgent (3 domains)
-    participant V as VectorStoreManager
-    participant L as MockLLM or OllamaLLM
+    participant A as DomainAgent
+    participant V as VectorStore
+    participant L as LLM client
 
+    U->>O: How do I deploy a microservice securely?
     O->>P: classify(question)
-    P->>L: generate(plan)
-    L-->>P: Plan
-    P-->>O: Tasks and complexity
+    P->>L: CALL 1: planner prompt + question + Plan schema
+    L-->>P: Plan: technical and compliance tasks
+    P-->>O: Plan(tasks, complexity, reason)
 
-    loop Each selected domain
+    loop Each task in the plan
         O->>A: retrieve(task, complexity)
-        A->>V: search(subquery, domain, limits)
-        V-->>A: Ranked evidence
-        A-->>O: AgentResult with evidence
+        A->>V: search(subquery, domain, top_k, threshold)
+        V-->>A: Documents and similarity scores
+        A-->>O: AgentResult with retrieved evidence
     end
 
-    loop Each distinct fact
+    loop Each distinct fact in retrieved evidence
         O->>V: peers(document, question)
         V-->>O: Same-scope source candidates
     end
-    Note over O: Resolve conflicts<br/>Assign approved evidence
+    Note over O: Apply conflict rules<br/>Select approved evidence
 
-    loop Each domain with evidence
-        O->>A: answer(result, question)
-        A->>L: generate(domain, approved sources)
-        L-->>A: Draft with cited claims
-        Note over A: Validate citations<br/>Update AgentResult
-    end
+    O->>A: answer(technical result, original question)
+    A->>L: CALL 2: domain prompt + question + technical task + evidence
+    L-->>A: Draft: technical claims and source_ids
+    Note over A: Check source_ids<br/>Update technical result
 
-    opt At least one cited source remains
-        O->>L: generate(synthesis, claims, sources)
-        L-->>O: Combined Draft
-    end
-    Note over O: Validate citations<br/>Return Answer and trace
+    O->>A: answer(compliance result, original question)
+    A->>L: CALL 3: domain prompt + question + compliance task + evidence
+    L-->>A: Draft: compliance claims and source_ids
+    Note over A: Check source_ids<br/>Update compliance result
+
+    O->>L: CALL 4: synthesis prompt + question + agent claims + cited sources
+    L-->>O: Final Draft: combined claims and source_ids
+    Note over O: Validate citations<br/>Determine status<br/>Build and record Answer
+    O-->>U: Answer: text, citations, plan, results, conflicts, timings, usage
 ```
 
-The diagram shows the successful call path; failure handling is described below.
-Calls are abbreviated: search limits mean `top_k` and `min_similarity`. `DomainAgent` represents three instances of one class, configured for
-technical, business and compliance. They do not call each other. The orchestrator
-passes context and collects their results. `VectorStoreManager` uses local MiniLM
-for vector encoding during search and peer lookup; it does not call the LLM.
+`DomainAgent` represents the selected instances of one class. They do not call
+each other; the orchestrator passes context and reads their updated results.
+Domain and synthesis calls also supply the `Draft` schema. Each claim contains
+text and supporting source IDs. **The LLM does not produce the complete `Answer`:**
+Python adds the status, request ID, trace and usage counters.
+
+The call count depends on the path:
+
+- With supported claims from every selected agent: one planning call, one per
+  agent, and one synthesis call (3, 4 or 5 calls for 1, 2 or 3 agents).
+- An agent without evidence skips generation. If no cited sources remain from
+  the agents, synthesis is skipped too. Failures can also stop the flow early.
+- Embeddings, retrieval, conflict resolution and citation checks are not
+  generative LLM calls. Mock counts the same logical calls without contacting a model.
 
 **Diagram conventions:** use one question and abstraction level per view, name the
 boundaries, label relationships and distinguish calls from responses. These
