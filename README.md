@@ -1,92 +1,124 @@
 # Multi-agent RAG
 
-A small assistant that answers technical, business and compliance questions using
-synthetic documents and citations. Includes a Jupyter notebook, FastAPI service
-and optional React chat UI.
+An assistant for technical, business and compliance questions, with cited answers,
+a demo notebook, FastAPI service and React chat UI.
 
-## Run with Docker
+## 1. Prepare the project
 
-Start Docker Desktop, then run from the project folder. Create `.env` only if you
-don't already have one:
+Use **Docker Desktop** for the API and chat UI. For the notebook, install
+**Python 3.13** and **VS Code** with Microsoft's **Python** and **Jupyter** extensions.
+The notebook runs locally in `.venv`.
+
+Clone the repository if you don't already have it:
 
 ```sh
-cp .env.example .env
-docker compose --profile ui up --build -d
+git clone https://github.com/llluchko/multi-agent-rag-assessment.git
+cd multi-agent-rag-assessment
 ```
 
-- **Chat:** http://localhost:5173
-- **API / Swagger:** http://localhost:8000/docs — try `POST /query`.
-- **Notebook:** run `docker compose logs notebook`, open the
-  `http://127.0.0.1:8888/lab?token=...` link and select `notebooks/demo.ipynb`.
-  Choose **Kernel → Restart Kernel and Run All Cells**. If asked for a password,
-  use the token from the logs.
+Open the project folder in VS Code. Whenever a step below includes a terminal
+command, run it from the project root using VS Code's integrated terminal.
 
-Try: “What business approvals are needed for a new data processing workflow?”
+## 2. Choose Ollama or mock
 
-The first start downloads dependencies and the embedding model. Omit `--profile ui`
-if you only need the API and notebook. Rerun the start command after code changes.
-Stop with `docker compose --profile ui down`.
+Copy `.env.example` to `.env` using VS Code, keeping an existing `.env` if present.
+The example selects real local generation:
 
-## Choose mock or Ollama
+```dotenv
+LLM_PROVIDER=ollama
+OLLAMA_MODEL=qwen3:4b
+EMBEDDING_BACKEND=fastembed
+```
 
-Set `LLM_PROVIDER` in `.env`:
+For a quick demo **without Ollama**, change only `LLM_PROVIDER=mock` and skip step 3.
+Mock returns retrieved passages instead of generating text. Both modes use real
+MiniLM embeddings for search; neither requires an API key.
 
-| Value | Answers |
-| --- | --- |
-| `mock` (default) | Rule-based responses; no LLM server needed. |
-| `ollama` | Real local generation with `qwen3:4b`. |
+## 3. Start Ollama (skip for mock)
 
-Both use local MiniLM embeddings for vector search. No API key is required.
-
-For Ollama, install and start [Ollama](https://ollama.com/download) on your machine
-(use `ollama serve` if the app isn't running), then download the model:
+Install [Ollama](https://ollama.com/download) on your computer and open the app.
+If running it from the terminal instead, keep `ollama serve` running in another
+terminal. Download the model once:
 
 ```sh
 ollama pull qwen3:4b
 ```
 
-Set `LLM_PROVIDER=ollama` in `.env` to use it, or `mock` to switch back.
-After either change, apply the configuration (Docker Desktop **Restart** alone
-does not reload `.env`):
+Open http://localhost:11434/api/tags and confirm that `qwen3:4b` appears.
+Keep Ollama running while using the project. The local notebook uses
+`localhost:11434`; Docker uses `host.docker.internal:11434`. Both are configured
+automatically, so leave `OLLAMA_URL` unset for this setup.
+
+On Linux, the Ollama listener must be reachable from Docker; see the
+[Ollama network configuration](https://docs.ollama.com/faq#how-do-i-configure-ollama-server).
+
+## 4. Start the API and chat UI with Docker
+
+Start Docker Desktop, then run (skip this step if you only need the notebook):
 
 ```sh
-docker compose up -d api notebook
+docker compose up --build -d api ui
 ```
 
-Restart the notebook kernel and run all cells. Keep Ollama running; a full notebook
-run can take several minutes. Compose connects to `host.docker.internal:11434`.
-On Linux, Ollama must listen on an address reachable from Docker. Use `OLLAMA_URL`
-or `OLLAMA_MODEL` in `.env` only to override the defaults.
+The first start downloads dependencies and MiniLM. Then open:
 
-## Tests
+- **Chat:** http://localhost:5173
+- **API / Swagger:** http://localhost:8000/docs
+- **Current provider:** http://localhost:8000/health — check `llm_provider`.
 
-With the containers running:
+Try: “What business approvals are needed for a new data processing workflow?”
+
+## 5. Run the notebook in VS Code
+
+Create the local environment and install dependencies once. On macOS/Linux:
 
 ```sh
-# Fast tests with test doubles
+python3.13 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt -c constraints.txt
+```
+
+On Windows PowerShell, create it with `py -3.13 -m venv .venv`, activate with
+`.venv\Scripts\Activate.ps1`, then run the same pip command above.
+If `.venv` is already prepared, go straight to kernel selection.
+
+1. Open `notebooks/demo.ipynb` in VS Code.
+2. Click **Select Kernel → Select Another Kernel → Python Environments** and
+   choose the project's **`.venv` (Python 3.13)**. If already selected, keep it.
+3. Select **Restart Kernel**, then **Run All**. The first cell prints the provider.
+
+The notebook reads the project's `.env` automatically. No server URL or token is
+needed. The first local run downloads MiniLM; Ollama generation can take several
+minutes. See [VS Code kernel selection](https://code.visualstudio.com/docs/datascience/jupyter-kernel-management#_python-environments)
+if `.venv` is missing from the picker.
+
+## Changing settings and stopping
+
+After changing `.env`, restart the notebook kernel and run all cells. To also
+apply the change to the Docker API:
+
+```sh
+docker compose up -d api
+```
+
+Docker Desktop **Restart** alone does not reload `.env`. Rerun the command from
+step 4 after changing application code; restart the local kernel for Python changes.
+
+Stop the application, including the optional UI service:
+
+```sh
+docker compose --profile ui down
+```
+
+## Optional checks
+
+```sh
+# Fast tests; no Ollama required
 docker compose exec api python -m pytest -q
 
-# Include real MiniLM embeddings
-docker compose exec -e RUN_SEMANTIC=1 api python -m pytest -q
-
-# Real generation — requires Ollama and the model above
+# Three live scenarios; requires running Ollama with qwen3:4b
 docker compose exec -e RUN_LIVE_LLM=1 api python -m pytest -m live -v
 ```
 
-## Code overview
-
-See [Architecture](docs/architecture.md) for the components, data flow and design choices.
-
-[`bootstrap.py`](rag_system/bootstrap.py) builds the shared core.
-[`Orchestrator._query()`](rag_system/orchestrator.py) coordinates the flow:
-
-**Question → plan → retrieve documents → resolve conflicts → domain answers → final answer with citations.**
-
-[`domain_agents.py`](rag_system/domain_agents.py) handles the three domains,
-[`vector_store.py`](rag_system/vector_store.py) handles retrieval, and
-[`models.py`](rag_system/models.py) defines the data passed between components.
-
-The corpus lives in `data/knowledge.json`. Documents, vectors, feedback and metrics
-are held in memory and reset on restart. API and notebook have separate state.
-Agents run sequentially; use one API worker. This local demo has no authentication
-or conversation memory.
+The demo uses synthetic data and in-memory state. API and notebook have separate
+state, reset on restart. See [Architecture](docs/architecture.md) for the design.
