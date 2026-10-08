@@ -4,31 +4,106 @@ The application answers technical, business and compliance questions over a smal
 synthetic corpus. One Python core serves the notebook and API; the React UI calls
 the API. Setup instructions are in the [README](../README.md).
 
-## Components
+## 1. Runtime view: interfaces, Python core and model server
+
+Read from top to bottom. Boxes grouped inside a boundary run in the same Python
+process. Arrows show calls from caller to callee; responses return along the same
+connection and are omitted here. HTTP calls are explicitly labelled.
 
 ```mermaid
-flowchart TD
-    UI[React UI] --> API[FastAPI]
-    API --> O[Orchestrator]
-    N[Jupyter notebook] --> ON[Separate Orchestrator instance]
-    O --> P[QueryClassifier]
-    O --> A[DomainAgent: technical, business, compliance]
-    A --> V[VectorStoreManager]
-    V --> E[Local MiniLM embeddings]
-    P --> L[MockLLM or OllamaLLM]
-    A --> L
-    O --> L
-    L -->|Ollama only: HTTP| S[Ollama server / Qwen3]
+flowchart TB
+    UI["React chat UI — browser"]
+
+    subgraph API_PROCESS["API process — api container"]
+        API["FastAPI — HTTP endpoints"]
+        API_CORE["Python core — Orchestrator and dependencies"]
+        API -->|"Calls query in Python"| API_CORE
+    end
+
+    subgraph NOTEBOOK_PROCESS["Notebook kernel — notebook container"]
+        CELLS["Demo notebook cells"]
+        NB_CORE["Python core — separate instance and state"]
+        CELLS -->|"Calls query in Python"| NB_CORE
+    end
+
+    OLLAMA["Ollama server — host machine, runs Qwen3"]
+
+    UI -->|"HTTP POST /api/query via Vite proxy to /query"| API
+    API_CORE -->|"Ollama mode only: HTTP POST /api/chat"| OLLAMA
+    NB_CORE -->|"Ollama mode only: HTTP POST /api/chat"| OLLAMA
 ```
 
-[`build_system()`](../rag_system/bootstrap.py) reads configuration, loads
-`data/knowledge.json`, embeds the documents and creates the store, LLM adapter and
-orchestrator. Each notebook/API instance owns its own state. The notebook instance
-uses the same components shown for the API.
+- **Interfaces:** React calls FastAPI. The main notebook examples call Python
+  directly; the notebook's API check uses an in-process FastAPI test client.
+- **Application core:** both paths use the same code, but each has its own
+  orchestrator, agents, document vectors, feedback and history. The notebook does
+  not share the running API's state.
+- **Model execution:** MiniLM embeddings run inside each Python process. In mock
+  mode, answer generation also stays inside that process. In Ollama mode, the LLM
+  adapter calls the separate Ollama server; Qwen does not run inside the API.
 
-The three agents are configurations of one
-[`DomainAgent`](../rag_system/domain_agents.py) class. They share a store but filter
-initial retrieval by domain. They run sequentially inside the Python process.
+[`build_system()`](../rag_system/bootstrap.py) assembles each core: it loads
+`data/knowledge.json`, embeds the documents, creates the store and selected LLM
+adapter, and supplies them to the orchestrator. Each document is one short passage;
+the store is in memory, not a separate database service.
+
+## 2. Interaction view: one question inside the Python core
+
+This expands either **Python core** box above. All participants below are Python
+objects in one process. Solid arrows are method calls; dashed arrows are returned
+values. Only the Ollama adapter makes an external HTTP call, as shown above.
+
+```mermaid
+sequenceDiagram
+    participant O as Orchestrator
+    participant P as QueryClassifier
+    participant A as DomainAgent (3 domains)
+    participant V as VectorStoreManager
+    participant L as MockLLM or OllamaLLM
+
+    O->>P: classify(question)
+    P->>L: generate(plan)
+    L-->>P: Plan
+    P-->>O: Tasks and complexity
+
+    loop Each selected domain
+        O->>A: retrieve(task, complexity)
+        A->>V: search(subquery, domain, limits)
+        V-->>A: Ranked evidence
+        A-->>O: AgentResult with evidence
+    end
+
+    loop Each distinct fact
+        O->>V: peers(document, question)
+        V-->>O: Same-scope source candidates
+    end
+    Note over O: Resolve conflicts<br/>Assign approved evidence
+
+    loop Each domain with evidence
+        O->>A: answer(result, question)
+        A->>L: generate(domain, approved sources)
+        L-->>A: Draft with cited claims
+        Note over A: Validate citations<br/>Update AgentResult
+    end
+
+    opt At least one cited source remains
+        O->>L: generate(synthesis, claims, sources)
+        L-->>O: Combined Draft
+    end
+    Note over O: Validate citations<br/>Return Answer and trace
+```
+
+The diagram shows the successful call path; failure handling is described below.
+Calls are abbreviated: search limits mean `top_k` and `min_similarity`. `DomainAgent` represents three instances of one class, configured for
+technical, business and compliance. They do not call each other. The orchestrator
+passes context and collects their results. `VectorStoreManager` uses local MiniLM
+for vector encoding during search and peer lookup; it does not call the LLM.
+
+**Diagram conventions:** use one question and abstraction level per view, name the
+boundaries, label relationships and distinguish calls from responses. These
+lightweight views follow the [C4 notation guidance](https://c4model.com/diagrams/notation)
+without introducing a full set of C4 diagrams. Mermaid keeps the diagrams editable
+alongside the code.
 
 ## A question from input to answer
 
